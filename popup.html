@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Content-Security-Policy" content="img-src * data: blob:;">
+    <title>Steam Friends Tracker</title>
+    <style>
+        :root {
+            --steam-dark: #1b2838;
+            --steam-darker: #171a21;
+            --steam-blue: #66c0f4;
+            --steam-green: #a4d037;
+            --steam-red: #ff6b6b;
+            --steam-gray: #8f98a0;
+            --steam-light: #c7d5e0;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        
+        body {
+            width: 350px;
+            max-height: 600px;
+            font-family: "Motiva Sans", Arial, sans-serif;
+            background: linear-gradient(180deg, #1b2838 0%, #0f1419 100%);
+            color: var(--steam-light);
+            padding: 0;
+            font-size: 13px;
+            overflow-x: hidden;
+        }
+
+        header {
+            padding: 12px 14px;
+            background: rgba(23,26,33,0.95);
+            border-bottom: 2px solid rgba(102, 192, 244, 0.4);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        header h2 {
+            color: var(--steam-blue);
+            font-size: 15px;
+            font-weight: 600;
+        }
+
+        .controls { display: flex; gap: 6px; }
+        
+        .controls button {
+            background: linear-gradient(180deg, rgba(102,192,244,0.3) 0%, rgba(58,74,87,0.8) 100%);
+            border: 1px solid rgba(102, 192, 244, 0.5);
+            color: var(--steam-light);
+            padding: 5px 10px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 11px;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+        
+        .controls button:hover {
+            background: linear-gradient(180deg, var(--steam-blue) 0%, #42a8e0 100%);
+            transform: translateY(-1px);
+        }
+        
+        .controls button.danger {
+            background: linear-gradient(180deg, rgba(255,107,107,0.3) 0%, rgba(201,42,42,0.8) 100%);
+            border-color: rgba(255, 107, 107, 0.5);
+        }
+
+        #logs-container {
+            padding: 12px 14px;
+            max-height: 450px;
+            overflow-y: auto;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: var(--steam-gray);
+        }
+        
+        .empty-state-icon {
+            font-size: 48px;
+            margin-bottom: 12px;
+            opacity: 0.5;
+        }
+        
+        .empty-state-text {
+            font-size: 13px;
+            line-height: 1.5;
+            margin-bottom: 10px;
+        }
+        
+        .empty-state-hint {
+            background: rgba(102, 192, 244, 0.1);
+            border: 1px dashed rgba(102, 192, 244, 0.4);
+            border-radius: 6px;
+            padding: 10px;
+            font-size: 12px;
+            color: var(--steam-blue);
+        }
+
+        .log-entry {
+            background: rgba(23,26,33,0.8);
+            border-radius: 6px;
+            padding: 12px;
+            margin-bottom: 10px;
+            border-left: 3px solid var(--steam-blue);
+            border: 1px solid rgba(102, 192, 244, 0.2);
+        }
+
+        .log-header {
+            display: flex;
+            justify-content: space-between;
+            color: var(--steam-gray);
+            font-size: 11px;
+            margin-bottom: 8px;
+            padding-bottom: 6px;
+            border-bottom: 1px dashed rgba(143, 152, 160, 0.3);
+        }
+
+        .friend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 8px;
+            background: rgba(26,35,44,0.6);
+            border-radius: 4px;
+            margin-bottom: 6px;
+        }
+        
+        .friend-item:last-child { margin-bottom: 0; }
+
+        .friend-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            border: 2px solid var(--steam-blue);
+        }
+
+        .friend-info { flex: 1; min-width: 0; }
+        
+        .friend-name {
+            color: var(--steam-light);
+            text-decoration: none;
+            font-weight: 500;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            display: block;
+        }
+        
+        .friend-name:hover { color: var(--steam-blue); }
+
+        .friend-status {
+            font-size: 9px;
+            padding: 2px 6px;
+            border-radius: 10px;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+        
+        .status-new { 
+            background: rgba(164,208,55,0.3);
+            color: var(--steam-green);
+        }
+        
+        .status-removed { 
+            background: rgba(255,107,107,0.3);
+            color: var(--steam-red);
+        }
+
+        .footer {
+            padding: 10px 14px;
+            background: rgba(15,20,25,0.95);
+            border-top: 1px solid rgba(102, 192, 244, 0.3);
+            text-align: center;
+            font-size: 11px;
+            color: var(--steam-gray);
+        }
+        
+        .footer-author {
+            margin-top: 4px;
+            color: var(--steam-blue);
+            font-weight: 700;
+            font-size: 12px;
+        }
+
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: var(--steam-darker); }
+        ::-webkit-scrollbar-thumb { 
+            background: #3a4a57;
+            border-radius: 3px;
+        }
+        ::-webkit-scrollbar-thumb:hover { background: var(--steam-blue); }
+    </style>
+</head>
+<body>
+    <header>
+        <h2>✨ Friends Tracker</h2>
+        <div class="controls">
+            <button id="refresh-btn">⟳</button>
+            <button id="clear-btn" class="danger">✕</button>
+        </div>
+    </header>
+
+    <div id="logs-container">
+        <div class="empty-state">
+            <div class="empty-state-icon">📭</div>
+            <div class="empty-state-text">
+                История изменений пуста
+            </div>
+            <div class="empty-state-hint">
+                📌 Перейдите на страницу друзей<br>
+                чтобы начать отслеживание
+            </div>
+        </div>
+    </div>
+
+    <footer class="footer">
+        Создано с ✨
+        <div class="footer-author">× MAIDEN ×</div>
+    </footer>
+
+    <script src="popup.js"></script>
+</body>
+</html>
