@@ -1,228 +1,356 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="Content-Security-Policy" content="img-src * data: blob:;">
-    <title>Steam Friends Tracker</title>
-    <style>
-        :root {
-            --steam-dark: #1b2838;
-            --steam-darker: #171a21;
-            --steam-blue: #66c0f4;
-            --steam-green: #a4d037;
-            --steam-red: #ff6b6b;
-            --steam-gray: #8f98a0;
-            --steam-light: #c7d5e0;
-        }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Friends Tracker</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800;900&display=swap');
+*{margin:0;padding:0;box-sizing:border-box}
+body{width:450px;font-family:'Montserrat',sans-serif;background:linear-gradient(135deg,#ff9a9e 0%,#fecfef 50%,#ffecd2 100%);color:#8b5a7d;overflow-x:hidden;position:relative}
+body.theme-18plus{background:transparent;color:#fff}
+#bg-video,#bg-video-2{position:fixed;top:0;left:0;width:100%;height:100%;object-fit:cover;z-index:0;pointer-events:none;opacity:0;transition:opacity 1s ease;display:none}
+body.theme-18plus #bg-video,body.theme-18plus #bg-video-2{display:block}
+.container{
+  max-height:650px;
+  overflow-y:hidden;
+  position:relative;
+  z-index:2
+}
 
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        
-        body {
-            width: 350px;
-            max-height: 600px;
-            font-family: "Motiva Sans", Arial, sans-serif;
-            background: linear-gradient(180deg, #1b2838 0%, #0f1419 100%);
-            color: var(--steam-light);
-            padding: 0;
-            font-size: 13px;
-            overflow-x: hidden;
-        }
+/* Header с аниме */
+.header{background:linear-gradient(135deg,#fff0f5 0%,#ffe4ec 100%);border-radius:0 0 30px 30px;padding:20px;text-align:center;position:relative;overflow:hidden;border:3px solid rgba(255,182,193,0.6);box-shadow:0 8px 32px rgba(255,105,180,0.3);z-index:3;transition:all 0.5s cubic-bezier(0.68,-0.55,0.265,1.55)}
+body.theme-18plus .header{background:rgba(0,0,0,0.3);border-color:rgba(255,255,255,0.1);backdrop-filter:blur(5px)}
+.header::before,.header::after{content:'';position:absolute;width:80px;height:100px;top:50%;transform:translateY(-50%);opacity:1;animation:float 3s ease-in-out infinite}
+.header::before{left:-10px;background:url('anime-girl-1.png')center/contain no-repeat}
+.header::after{right:-10px;background:url('anime-girl-2.png')center/contain no-repeat;animation-delay:1.5s}
+body.theme-18plus .header::before,body.theme-18plus .header::after{display:none}
+.header h1{font-size:24px;font-weight:900;background:linear-gradient(135deg,#ff6b9d,#c44582,#ff9a9e);-webkit-background-clip:text;-webkit-text-fill-color:transparent;transition:all 0.5s}
+body.theme-18plus .header h1{background:linear-gradient(135deg,#fff,#ff9a9e);-webkit-background-clip:text;text-shadow:0 0 20px rgba(255,255,255,0.3)}
+.header-subtitle{font-size:12px;color:#c44582;font-weight:700;margin-top:4px;transition:all 0.5s}
+body.theme-18plus .header-subtitle{color:rgba(255,255,255,0.8)}
 
-        header {
-            padding: 12px 14px;
-            background: rgba(23,26,33,0.95);
-            border-bottom: 2px solid rgba(102, 192, 244, 0.4);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
+/* 18+ кнопка */
+.theme-toggle{position:absolute;top:10px;right:10px;padding:6px 12px;border:2px solid rgba(255,182,193,0.6);border-radius:20px;background:rgba(255,255,255,0.8);color:#c44582;font-size:11px;font-weight:800;cursor:pointer;z-index:10;transition:all 0.3s cubic-bezier(0.68,-0.55,0.265,1.55)}
+body.theme-18plus .theme-toggle{background:rgba(255,255,255,0.1);border-color:rgba(255,255,255,0.3);color:#fff}
+.theme-toggle:hover{transform:scale(1.15) rotate(5deg);box-shadow:0 0 20px rgba(255,105,180,0.5)}
 
-        header h2 {
-            color: var(--steam-blue);
-            font-size: 15px;
-            font-weight: 600;
-        }
+/* Tabs с анимацией */
+.tabs{display:flex;gap:8px;padding:15px;background:rgba(255,255,255,0.4);z-index:3;position:relative;transition:all 0.5s}
+body.theme-18plus .tabs{background:transparent}
+.tab{flex:1;padding:12px;border:none;border-radius:15px;background:rgba(255,255,255,0.6);color:#c44582;font-weight:800;font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;transition:all 0.3s cubic-bezier(0.68,-0.55,0.265,1.55);box-shadow:0 2px 8px rgba(255,105,180,0.2)}
+body.theme-18plus .tab{background:rgba(0,0,0,0.3);color:#fff;border:2px solid rgba(255,255,255,0.2);backdrop-filter:blur(5px)}
+.tab:hover{transform:translateY(-3px) scale(1.05);box-shadow:0 6px 20px rgba(255,105,180,0.4)}
+body.theme-18plus .tab:hover{background:rgba(255,255,255,0.1);border-color:rgba(255,255,255,0.4);box-shadow:0 6px 20px rgba(255,255,255,0.2)}
+.tab.active{background:linear-gradient(135deg,#ff6b9d 0%,#ff9a9e 100%);color:white;box-shadow:0 4px 15px rgba(255,107,157,0.4);transform:translateY(-2px)}
+body.theme-18plus .tab.active{background:linear-gradient(135deg,rgba(255,154,158,0.6),rgba(255,236,210,0.6));color:#fff;border-color:rgba(255,255,255,0.5);box-shadow:0 4px 15px rgba(255,154,158,0.5)}
+.tab-content{display:none;padding:15px;z-index:3;position:relative}
+.tab-content.active{display:block;animation:fadeIn 0.4s ease}
 
-        .controls { display: flex; gap: 6px; }
-        
-        .controls button {
-            background: linear-gradient(180deg, rgba(102,192,244,0.3) 0%, rgba(58,74,87,0.8) 100%);
-            border: 1px solid rgba(102, 192, 244, 0.5);
-            color: var(--steam-light);
-            padding: 5px 10px;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 11px;
-            font-weight: 600;
-            transition: all 0.2s;
-        }
-        
-        .controls button:hover {
-            background: linear-gradient(180deg, var(--steam-blue) 0%, #42a8e0 100%);
-            transform: translateY(-1px);
-        }
-        
-        .controls button.danger {
-            background: linear-gradient(180deg, rgba(255,107,107,0.3) 0%, rgba(201,42,42,0.8) 100%);
-            border-color: rgba(255, 107, 107, 0.5);
-        }
+/* Search с анимацией */
+.search-box{position:relative;margin-bottom:15px}
+.search-box input{width:100%;padding:14px 45px 14px 18px;border:2px solid rgba(255,182,193,0.6);border-radius:15px;font-size:13px;font-weight:600;background:rgba(255,240,245,0.9);color:#8b5a7d;transition:all 0.3s cubic-bezier(0.68,-0.55,0.265,1.55)}
+body.theme-18plus .search-box input{background:rgba(0,0,0,0.3);border-color:rgba(255,255,255,0.2);color:#fff}
+.search-box input:focus{outline:none;border-color:#ff6b9d;box-shadow:0 0 0 4px rgba(255,107,157,0.25);background:#fff;transform:translateY(-2px)}
+body.theme-18plus .search-box input:focus{border-color:rgba(255,255,255,0.4);box-shadow:0 0 0 4px rgba(255,255,255,0.15);background:rgba(0,0,0,0.5)}
+.search-box input::placeholder{color:#c44582;opacity:0.6;font-weight:600;transition:opacity 0.3s}
+.search-box input:focus::placeholder{opacity:0.4}
+body.theme-18plus .search-box input::placeholder{color:rgba(255,255,255,0.5)}
+.search-icon{position:absolute;right:15px;top:50%;transform:translateY(-50%);color:#ff6b9d;font-size:18px;transition:all 0.3s}
+.search-box input:focus+.search-icon{color:#ff6b9d;transform:translateY(-50%) scale(1.1)}
 
-        #logs-container {
-            padding: 12px 14px;
-            max-height: 450px;
-            overflow-y: auto;
-        }
+/* Buttons с анимацией */
+.btn-group{display:flex;gap:10px;margin-bottom:15px}
+.btn{flex:1;padding:14px 18px;border:none;border-radius:15px;font-weight:800;font-size:13px;cursor:pointer;background:linear-gradient(135deg,#ff6b9d 0%,#ff9a9e 100%);color:white;transition:all 0.3s cubic-bezier(0.68,-0.55,0.265,1.55);box-shadow:0 4px 15px rgba(255,107,157,0.4);position:relative;overflow:hidden}
+body.theme-18plus .btn{background:linear-gradient(135deg,rgba(255,154,158,0.6),rgba(255,236,210,0.6));color:#fff;border:2px solid rgba(255,255,255,0.2)}
+.btn::before{content:'';position:absolute;top:0;left:-100%;width:100%;height:100%;background:linear-gradient(90deg,transparent,rgba(255,255,255,0.3),transparent);transition:left 0.5s}
+.btn:hover::before{left:100%}
+.btn:hover{transform:translateY(-4px) scale(1.03);box-shadow:0 8px 25px rgba(255,107,157,0.5)}
+body.theme-18plus .btn:hover{box-shadow:0 8px 25px rgba(255,154,158,0.5)}
+.btn:active{transform:translateY(-1px) scale(0.98)}
 
-        .empty-state {
-            text-align: center;
-            padding: 40px 20px;
-            color: var(--steam-gray);
-        }
-        
-        .empty-state-icon {
-            font-size: 48px;
-            margin-bottom: 12px;
-            opacity: 0.5;
-        }
-        
-        .empty-state-text {
-            font-size: 13px;
-            line-height: 1.5;
-            margin-bottom: 10px;
-        }
-        
-        .empty-state-hint {
-            background: rgba(102, 192, 244, 0.1);
-            border: 1px dashed rgba(102, 192, 244, 0.4);
-            border-radius: 6px;
-            padding: 10px;
-            font-size: 12px;
-            color: var(--steam-blue);
-        }
+/* Radio кнопки с анимацией */
+.radio-stations{display:flex;gap:8px;margin-bottom:15px;flex-wrap:wrap}
+.radio-station-btn{flex:1;min-width:100px;padding:12px;border:2px solid rgba(255,182,193,0.6);border-radius:12px;background:rgba(255,255,255,0.7);color:#c44582;font-weight:800;font-size:12px;cursor:pointer;transition:all 0.3s cubic-bezier(0.68,-0.55,0.265,1.55)}
+body.theme-18plus .radio-station-btn{background:rgba(0,0,0,0.3);color:#fff;border-color:rgba(255,255,255,0.2)}
+.radio-station-btn:hover{background:rgba(255,107,157,0.2);border-color:#ff6b9d;transform:translateY(-3px) scale(1.05);box-shadow:0 0 20px rgba(255,107,157,0.4)}
+body.theme-18plus .radio-station-btn:hover{background:rgba(255,255,255,0.1);border-color:rgba(255,255,255,0.4);box-shadow:0 0 20px rgba(255,255,255,0.3)}
+.radio-station-btn.active{background:linear-gradient(135deg,#ff6b9d 0%,#ff9a9e 100%);color:white;border-color:#ff6b9d;box-shadow:0 0 25px rgba(255,107,157,0.5);transform:translateY(-2px) scale(1.05)}
+body.theme-18plus .radio-station-btn.active{background:linear-gradient(135deg,rgba(255,154,158,0.6),rgba(255,236,210,0.6));border-color:rgba(255,255,255,0.5);box-shadow:0 0 25px rgba(255,154,158,0.5)}
+.radio-player{background:linear-gradient(135deg,#fff0f5 0%,#ffe4ec 100%);border-radius:20px;padding:18px;margin-bottom:15px;border:2px solid rgba(255,105,180,0.6);display:none;box-shadow:0 4px 20px rgba(255,105,180,0.2);animation:slideDown 0.4s cubic-bezier(0.68,-0.55,0.265,1.55)}
+body.theme-18plus .radio-player{background:rgba(0,0,0,0.3);border-color:rgba(255,255,255,0.1)}
+.radio-player.active{display:block}
+.radio-controls{display:flex;gap:8px}
+.radio-btn{flex:1;padding:12px;border:none;border-radius:12px;background:linear-gradient(135deg,#ff6b9d 0%,#ff9a9e 100%);color:white;font-weight:800;cursor:pointer;transition:all 0.3s cubic-bezier(0.68,-0.55,0.265,1.55);box-shadow:0 2px 10px rgba(255,107,157,0.3)}
+body.theme-18plus .radio-btn{background:linear-gradient(135deg,rgba(255,154,158,0.6),rgba(255,236,210,0.6));color:#fff;border:2px solid rgba(255,255,255,0.2)}
+.radio-btn:hover{transform:scale(1.08);box-shadow:0 4px 20px rgba(255,107,157,0.5)}
 
-        .log-entry {
-            background: rgba(23,26,33,0.8);
-            border-radius: 6px;
-            padding: 12px;
-            margin-bottom: 10px;
-            border-left: 3px solid var(--steam-blue);
-            border: 1px solid rgba(102, 192, 244, 0.2);
-        }
+/* Stats карточки с анимацией */
+.stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:15px}
+.stat-card{background:linear-gradient(135deg,#fff5f7 0%,#ffeef2 100%);border-radius:18px;padding:18px;text-align:center;border:2px solid rgba(255,182,193,0.6);transition:all 0.3s cubic-bezier(0.68,-0.55,0.265,1.55);box-shadow:0 2px 10px rgba(255,105,180,0.2);animation:slideUp 0.5s ease}
+body.theme-18plus .stat-card{background:rgba(0,0,0,0.3);border-color:rgba(255,255,255,0.1)}
+.stat-card:hover{transform:translateY(-6px) scale(1.03);box-shadow:0 10px 30px rgba(255,105,180,0.3);border-color:#ff6b9d}
+body.theme-18plus .stat-card:hover{border-color:rgba(255,255,255,0.3);box-shadow:0 10px 30px rgba(255,255,255,0.2)}
+.stat-value{font-size:32px;font-weight:900;background:linear-gradient(135deg,#ff6b9d,#c44582);-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:5px;transition:all 0.5s}
+body.theme-18plus .stat-value{background:linear-gradient(135deg,#fff,#ff9a9e);-webkit-background-clip:text}
+.stat-label{font-size:11px;color:#c44582;font-weight:800;text-transform:uppercase;letter-spacing:0.5px;transition:color 0.5s}
+body.theme-18plus .stat-label{color:rgba(255,255,255,0.7)}
 
-        .log-header {
-            display: flex;
-            justify-content: space-between;
-            color: var(--steam-gray);
-            font-size: 11px;
-            margin-bottom: 8px;
-            padding-bottom: 6px;
-            border-bottom: 1px dashed rgba(143, 152, 160, 0.3);
-        }
+/* Friends с анимацией */
+.friends-list{
+  max-height:400px;
+  overflow-y:auto;
+  padding-right:5px
+}
+.friend-item{display:flex;align-items:center;gap:12px;padding:14px;background:linear-gradient(135deg,rgba(255,182,193,0.2) 0%,rgba(255,255,255,0.8) 100%);border-radius:15px;margin-bottom:10px;border:2px solid rgba(255,182,193,0.5);transition:all 0.3s cubic-bezier(0.68,-0.55,0.265,1.55);animation:slideIn 0.4s ease}
+body.theme-18plus .friend-item{background:rgba(0,0,0,0.3);border-color:rgba(255,255,255,0.1)}
+.friend-item:hover{transform:translateX(10px) scale(1.02);box-shadow:0 6px 20px rgba(255,105,180,0.3);border-color:#ff6b9d;background:rgba(255,255,255,0.9)}
+body.theme-18plus .friend-item:hover{border-color:rgba(255,255,255,0.3);box-shadow:0 6px 20px rgba(255,255,255,0.2);background:rgba(0,0,0,0.5)}
+.friend-avatar{width:50px;height:50px;border-radius:50%;object-fit:cover;border:3px solid #ffb6c1;box-shadow:0 2px 10px rgba(255,105,180,0.2);transition:all 0.3s}
+.friend-item:hover .friend-avatar{transform:scale(1.1) rotate(5deg);border-color:#ff6b9d}
+.friend-info{flex:1;min-width:0}
+.friend-name{color:#8b5a7d;text-decoration:none;font-weight:800;font-size:14px;display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;transition:color 0.3s}
+body.theme-18plus .friend-name{color:#fff}
+.friend-name:hover{color:#ff6b9d}
+.friend-steamid{font-size:10px;color:#c44582;font-family:'Montserrat',monospace;opacity:0.7;font-weight:600;transition:opacity 0.3s}
+.friend-item:hover .friend-steamid{opacity:1}
+body.theme-18plus .friend-steamid{color:rgba(255,255,255,0.5)}
 
-        .friend-item {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            padding: 6px 8px;
-            background: rgba(26,35,44,0.6);
-            border-radius: 4px;
-            margin-bottom: 6px;
-        }
-        
-        .friend-item:last-child { margin-bottom: 0; }
+/* Logs с анимацией */
+.log-entry{background:linear-gradient(135deg,#fff5f7 0%,#ffeef2 100%);border-radius:18px;padding:18px;margin-bottom:15px;border:2px solid rgba(255,182,193,0.6);animation:fadeIn 0.5s ease;box-shadow:0 2px 10px rgba(255,105,180,0.2);transition:all 0.3s}
+body.theme-18plus .log-entry{background:rgba(0,0,0,0.3);border-color:rgba(255,255,255,0.1)}
+.log-entry:hover{border-color:#ff6b9d;box-shadow:0 0 20px rgba(255,107,157,0.3);transform:translateY(-3px)}
+body.theme-18plus .log-entry:hover{border-color:rgba(255,255,255,0.3);box-shadow:0 0 20px rgba(255,255,255,0.2)}
+.log-header{display:flex;justify-content:space-between;margin-bottom:15px;padding-bottom:12px;border-bottom:2px dashed rgba(255,182,193,0.4);transition:border-color 0.3s}
+body.theme-18plus .log-header{border-bottom-color:rgba(255,255,255,0.2)}
+.log-entry:hover .log-header{border-bottom-color:#ff6b9d}
+.log-date{font-size:12px;font-weight:800;color:#7a5a7a;transition:color 0.3s}
+body.theme-18plus .log-date{color:#fff}
+.log-added{color:#48bb78;background:rgba(72,187,120,0.15);padding:5px 14px;border-radius:10px;font-weight:900;border:1px solid rgba(72,187,120,0.3);transition:all 0.3s}
+.log-added:hover{background:rgba(72,187,120,0.25);transform:scale(1.05)}
+.log-removed{color:#f56565;background:rgba(245,101,101,0.15);padding:5px 14px;border-radius:10px;font-weight:900;border:1px solid rgba(245,101,101,0.3);transition:all 0.3s}
+.log-removed:hover{background:rgba(245,101,101,0.25);transform:scale(1.05)}
 
-        .friend-avatar {
-            width: 32px;
-            height: 32px;
-            border-radius: 50%;
-            border: 2px solid var(--steam-blue);
-        }
+/* Empty state с анимацией */
+.empty-state{text-align:center;padding:50px 25px;background:linear-gradient(135deg,#fff0f5 0%,#ffe4ec 100%);border-radius:20px;border:3px dashed rgba(255,182,193,0.8);box-shadow:0 4px 20px rgba(255,105,180,0.2);transition:all 0.3s}
+body.theme-18plus .empty-state{background:rgba(0,0,0,0.3);border-color:rgba(255,255,255,0.2)}
+.empty-state:hover{transform:scale(1.02);box-shadow:0 8px 30px rgba(255,105,180,0.3)}
+.empty-icon{font-size:64px;margin-bottom:18px;animation:bounce 2s ease-in-out infinite}
+.empty-text{font-size:15px;color:#7a5a7a;font-weight:800;margin-bottom:10px;transition:color 0.5s}
+body.theme-18plus .empty-text{color:#fff}
+.empty-hint{font-size:12px;color:#9a7b9a;line-height:1.6;font-weight:600;transition:color 0.5s}
+body.theme-18plus .empty-hint{color:rgba(255,255,255,0.6)}
+.loading{text-align:center;padding:35px;color:#c44582;font-weight:800;font-size:14px;animation:pulse 1.5s ease-in-out infinite}
+body.theme-18plus .loading{color:#fff}
 
-        .friend-info { flex: 1; min-width: 0; }
-        
-        .friend-name {
-            color: var(--steam-light);
-            text-decoration: none;
-            font-weight: 500;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            display: block;
-        }
-        
-        .friend-name:hover { color: var(--steam-blue); }
+/* ВСЕ АНИМАЦИИ */
+@keyframes float{0%,100%{transform:translateY(-50%) rotate(0deg)}50%{transform:translateY(-60%) rotate(3deg)}}
+@keyframes bounce{0%,100%{transform:translateY(0)}50%{transform:translateY(-18px)}}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.5}}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+@keyframes slideIn{from{opacity:0;transform:translateX(-25px)}to{opacity:1;transform:translateX(0)}}
+@keyframes slideDown{from{opacity:0;transform:translateY(-25px)}to{opacity:1;transform:translateY(0)}}
+@keyframes slideUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+@keyframes spin{to{transform:rotate(360deg)}}
 
-        .friend-status {
-            font-size: 9px;
-            padding: 2px 6px;
-            border-radius: 10px;
-            font-weight: 700;
-            text-transform: uppercase;
-        }
-        
-        .status-new { 
-            background: rgba(164,208,55,0.3);
-            color: var(--steam-green);
-        }
-        
-        .status-removed { 
-            background: rgba(255,107,107,0.3);
-            color: var(--steam-red);
-        }
-
-        .footer {
-            padding: 10px 14px;
-            background: rgba(15,20,25,0.95);
-            border-top: 1px solid rgba(102, 192, 244, 0.3);
-            text-align: center;
-            font-size: 11px;
-            color: var(--steam-gray);
-        }
-        
-        .footer-author {
-            margin-top: 4px;
-            color: var(--steam-blue);
-            font-weight: 700;
-            font-size: 12px;
-        }
-
-        ::-webkit-scrollbar { width: 6px; }
-        ::-webkit-scrollbar-track { background: var(--steam-darker); }
-        ::-webkit-scrollbar-thumb { 
-            background: #3a4a57;
-            border-radius: 3px;
-        }
-        ::-webkit-scrollbar-thumb:hover { background: var(--steam-blue); }
-    </style>
+/* Scrollbar с анимацией */
+::-webkit-scrollbar{width:10px}
+::-webkit-scrollbar-track{background:rgba(255,255,255,0.4);border-radius:12px;transition:background 0.3s}
+::-webkit-scrollbar-track:hover{background:rgba(255,255,255,0.6)}
+::-webkit-scrollbar-thumb{background:linear-gradient(135deg,#ff6b9d,#ff9a9e);border-radius:12px;border:2px solid rgba(255,255,255,0.5);transition:all 0.3s}
+::-webkit-scrollbar-thumb:hover{background:linear-gradient(135deg,#ff9a9e,#ff6b9d);transform:scale(1.05)}
+body.theme-18plus ::-webkit-scrollbar-thumb{background:linear-gradient(135deg,rgba(255,154,158,0.6),rgba(255,236,210,0.6))}
+</style>
 </head>
 <body>
-    <header>
-        <h2>✨ Friends Tracker</h2>
-        <div class="controls">
-            <button id="refresh-btn">⟳</button>
-            <button id="clear-btn" class="danger">✕</button>
-        </div>
-    </header>
-
-    <div id="logs-container">
-        <div class="empty-state">
-            <div class="empty-state-icon">📭</div>
-            <div class="empty-state-text">
-                История изменений пуста
-            </div>
-            <div class="empty-state-hint">
-                📌 Перейдите на страницу друзей<br>
-                чтобы начать отслеживание
-            </div>
-        </div>
+<video id="bg-video" autoplay muted playsinline></video>
+<video id="bg-video-2" muted playsinline></video>
+<div class="container">
+  <div class="header">
+    <button class="theme-toggle" id="theme-toggle">18+</button>
+    <h1>✨ Friends Tracker 💖</h1>
+    <div class="header-subtitle">Отслеживаем друзей вместе~</div>
+  </div>
+  <div class="tabs">
+    <button class="tab active" data-tab="friends">👥 Друзья</button>
+    <button class="tab" data-tab="history">📜 История</button>
+    <button class="tab" data-tab="stats">📊 Статистика</button>
+  </div>
+  <div class="tab-content active" id="tab-friends">
+    <div class="search-box"><input type="text" id="search-input" placeholder="🔍 Поиск друзей..."><span class="search-icon">🔍</span></div>
+    <div class="btn-group">
+      <button class="btn" id="refresh-btn">⟳ Обновить</button>
+      <button class="btn" id="export-btn">💾 Экспорт</button>
     </div>
-
-    <footer class="footer">
-        Создано с ✨
-        <div class="footer-author">× MAIDEN ×</div>
-    </footer>
-
-    <script src="popup.js"></script>
+    <div class="radio-stations">
+      <button class="radio-station-btn" data-url="https://radiorecord.hostingradio.ru/dc96.aacp">🎵 Record</button>
+      <button class="radio-station-btn" data-url="http://vladfm.ru:8000/ara">🎵 VladFM</button>
+      <button class="radio-station-btn" data-url="http://176.118.220.124:8010/radio">🎵 ТКР ФМ</button>
+    </div>
+    <div class="radio-player" id="radio-player">
+      <div style="color:#c44582;margin-bottom:12px;font-weight:800" id="radio-name">📻 Радио</div>
+      <div style="color:#c44582;margin-bottom:15px;font-weight:700" id="radio-status">Нажми Play~</div>
+      <div class="radio-controls">
+        <button class="radio-btn" id="radio-play">▶</button>
+        <button class="radio-btn" id="radio-pause">⏸</button>
+        <button class="radio-btn" id="radio-stop">⏹</button>
+      </div>
+    </div>
+    <div class="friends-list" id="friends-list"><div class="loading">Загрузка</div></div>
+  </div>
+  <div class="tab-content" id="tab-history">
+    <div class="btn-group"><button class="btn" id="clear-history-btn">✕ Очистить</button></div>
+    <div id="history-list"><div class="loading">Загрузка</div></div>
+  </div>
+  <div class="tab-content" id="tab-stats">
+    <div class="stats-grid">
+      <div class="stat-card"><div class="stat-value" id="stat-added">0</div><div class="stat-label">Добавлено</div></div>
+      <div class="stat-card"><div class="stat-value" id="stat-removed">0</div><div class="stat-label">Удалено</div></div>
+      <div class="stat-card"><div class="stat-value" id="stat-current">0</div><div class="stat-label">Сейчас</div></div>
+      <div class="stat-card"><div class="stat-value" id="stat-logs">0</div><div class="stat-label">Записей</div></div>
+    </div>
+  </div>
+</div>
+<script src="popup.js"></script>
+<script src="video-loop.js"></script>
 </body>
 </html>
+<style>
+/* ... ваши существующие стили ... */
+
+/* Контейнер истории с прокруткой */
+#history-list {
+    max-height: 400px;
+    overflow-y: auto;
+    padding-right: 5px;
+}
+
+/* Кастомный скроллбар */
+#history-list::-webkit-scrollbar {
+    width: 6px;
+}
+
+#history-list::-webkit-scrollbar-track {
+    background: rgba(0,0,0,0.3);
+    border-radius: 3px;
+}
+
+#history-list::-webkit-scrollbar-thumb {
+    background: rgba(255,255,255,0.3);
+    border-radius: 3px;
+}
+
+#history-list::-webkit-scrollbar-thumb:hover {
+    background: rgba(255,255,255,0.5);
+}
+
+/* Запись истории */
+.log-entry {
+    background: rgba(255,255,255,0.08);
+    border-radius: 10px;
+    padding: 12px;
+    margin: 8px 0;
+    animation: slideIn 0.3s ease;
+}
+
+.log-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+}
+
+.log-date {
+    color: #aaa;
+    font-size: 12px;
+}
+
+.stat-new {
+    color: #4CAF50;
+    margin-right: 10px;
+    font-weight: 600;
+}
+
+.stat-removed {
+    color: #f44336;
+    font-weight: 600;
+}
+
+/* Список друзей в записи */
+.log-friends {
+    margin: 10px 0 0 0;
+    padding: 10px;
+    background: rgba(0,0,0,0.2);
+    border-radius: 8px;
+    max-height: 150px;
+    overflow-y: auto;
+}
+
+.log-friends::-webkit-scrollbar {
+    width: 4px;
+}
+
+.log-friends::-webkit-scrollbar-thumb {
+    background: rgba(255,255,255,0.2);
+    border-radius: 2px;
+}
+
+/* Мини-карточка друга */
+.friend-item-mini {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px;
+    margin: 5px 0;
+    background: rgba(0,0,0,0.3);
+    border-radius: 6px;
+    transition: background 0.2s;
+}
+
+.friend-item-mini:hover {
+    background: rgba(0,0,0,0.5);
+}
+
+.friend-avatar-mini {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.friend-name-mini {
+    flex: 1;
+    color: #fff;
+    text-decoration: none;
+    font-size: 13px;
+}
+
+.friend-name-mini:hover {
+    text-decoration: underline;
+}
+
+.badge-new {
+    background: #4CAF50;
+    color: #fff;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 11px;
+    font-weight: 600;
+}
+
+.badge-removed {
+    background: #f44336;
+    color: #fff;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 11px;
+    font-weight: 600;
+}
+
+@keyframes slideIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+</style>
