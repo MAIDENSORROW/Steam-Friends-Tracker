@@ -1,20 +1,8 @@
-# 🎮 Steam Friends Tracker
-
-A lightweight browser extension that monitors changes in your Steam friends list. It tracks when friends are added or removed and sends you desktop notifications with a detailed history log.
-
-## ✨ Features
-
-- **Real-time Monitoring:** Automatically detects changes on your Steam Friends page.
-- **Desktop Notifications:** Get instant alerts when your friends list changes (with cooldown to prevent spam).
-- **History Log:** View a detailed history of added/removed friends with avatars and profiles directly in the popup.
-- **Privacy Focused:** All data is stored locally in your browser (`chrome.storage.local`). No data is sent to external servers.
-- **Smart Avatar Cleaning:** Fixes Steam CDN URLs for consistent avatar display.
-- **SPA Support:** Handles Steam's dynamic page navigation without needing a refresh.
-
-## 📸 Screenshots
-
-*(Add screenshots of your popup and notification here later)*
-![Popup Example](screenshots/popup.png)
+🎮 Steam Friends Tracker
+Расширение для Chrome • Версия 10.0 • 💖 Отслеживай друзей с любовью
+📋 Описание
+Steam Friends Tracker — это удобное расширение для браузера, которое помогает отслеживать изменения в списке друзей Steam. Узнавайте, кто добавил вас в друзья, кто удалил, и ведите статистику своих социальных связей в Steam!
+✨ Дополнительные фишки: красивый видео-фон, встроенное интернет-радио и тема 18+ для настроения~
 
 ## 🚀 Installation
 
