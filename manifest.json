@@ -1,15 +1,12 @@
 {
   "manifest_version": 3,
   "name": "Steam Friends Tracker",
-  "version": "5.1",
-  "description": "Отслеживает изменения в списке друзей Steam",
-  "permissions": [
-    "storage",
-    "notifications"
-  ],
+  "version": "10.0",
+  "description": "Отслеживает друзей + Видео фон + Радио",
+  "permissions": ["storage", "notifications", "offscreen"],
   "host_permissions": [
-    "*://steamcommunity.com/*",
-    "*://*.steamstatic.com/*"
+    "https://steamcommunity.com/*",
+    "https://*.steamstatic.com/*"
   ],
   "action": {
     "default_popup": "popup.html",
@@ -28,26 +25,13 @@
   "background": {
     "service_worker": "background.js"
   },
-  "content_scripts": [
-    {
-      "matches": [
-        "*://steamcommunity.com/*/friends*"
-      ],
-      "js": [
-        "content.js"
-      ],
-      "run_at": "document_start"
-    }
-  ],
-  "web_accessible_resources": [
-    {
-      "resources": [
-        "icon.png",
-        "*.png"
-      ],
-      "matches": [
-        "<all_urls>"
-      ]
-    }
-  ]
+  "content_scripts": [{
+    "matches": ["https://steamcommunity.com/*/friends"],
+    "js": ["content.js"],
+    "run_at": "document_start"
+  }],
+  "web_accessible_resources": [{
+    "resources": ["*.png","*.ico", "*.mp4", "*.js"],
+    "matches": ["<all_urls>"]
+  }]
 }
