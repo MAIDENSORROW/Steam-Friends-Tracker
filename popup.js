@@ -1,4 +1,4 @@
-let currentFriends=[],searchQuery='',currentRadioUrl='',isTheme18Plus=false;
+let currentFriends=[],searchQuery='',isTheme18Plus=false;
 
 function formatDate(ts){
   const d=new Date(ts),n=new Date();
@@ -76,31 +76,6 @@ function notify(txt){
   setTimeout(()=>n.remove(),3000);
 }
 
-function initRadio(){
-  const statusEl=document.getElementById('radio-status');
-  document.querySelectorAll('.radio-station-btn').forEach(btn=>{
-    btn.addEventListener('click',()=>{
-      const url=btn.dataset.url;currentRadioUrl=url;
-      document.querySelectorAll('.radio-station-btn').forEach(b=>b.classList.remove('active'));
-      btn.classList.add('active');
-      document.getElementById('radio-player').classList.add('active');
-      chrome.runtime.sendMessage({type:'PLAY_RADIO',url},(r)=>{
-        if(chrome.runtime.lastError){statusEl.textContent='❌ Ошибка';return;}
-        statusEl.textContent='📻 Играет~';notify('Радио включено!');
-      });
-    });
-  });
-  document.getElementById('radio-play').addEventListener('click',()=>{
-    if(!currentRadioUrl){statusEl.textContent='Выберите станцию~';return;}
-    chrome.runtime.sendMessage({type:'PLAY_RADIO',url:currentRadioUrl},(r)=>{
-      if(chrome.runtime.lastError){statusEl.textContent='❌ Ошибка';return;}
-      statusEl.textContent='📻 Играет~';
-    });
-  });
-  document.getElementById('radio-pause').addEventListener('click',()=>{chrome.runtime.sendMessage({type:'PAUSE_RADIO'});statusEl.textContent='⏸ Пауза~';});
-  document.getElementById('radio-stop').addEventListener('click',()=>{chrome.runtime.sendMessage({type:'STOP_RADIO'});statusEl.textContent='⏹ Стоп';});
-}
-
 function initTheme(){
   document.getElementById('theme-toggle').addEventListener('click',()=>{
     isTheme18Plus=!isTheme18Plus;
@@ -130,7 +105,7 @@ function initSearch(){
 }
 
 document.addEventListener('DOMContentLoaded',()=>{
-  initTabs();initSearch();initRadio();initTheme();renderFriends();
+  initTabs();initSearch();initTheme();renderFriends();
   document.getElementById('refresh-btn').addEventListener('click',()=>{
     document.getElementById('friends-list').innerHTML='<div class="loading">Обновление</div>';
     setTimeout(()=>{chrome.tabs.query({active:true,currentWindow:true},(tabs)=>{if(tabs[0]?.id)chrome.tabs.sendMessage(tabs[0].id,{type:'MANUAL_CHECK'});});setTimeout(renderFriends,1000);},300);

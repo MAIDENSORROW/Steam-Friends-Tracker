@@ -89,11 +89,9 @@ function checkAndSave() {
 
 function startTracking() {
   const currentUrl = window.location.href;
-  const isFriendsPage = currentUrl.includes('/friends') && 
-                       !currentUrl.includes('/pending') && 
-                       !currentUrl.includes('/outgoing') && 
-                       !currentUrl.includes('/blocked');
-                       
+  // Проверяем, что это именно страница друзей (не черный список, не входящие/исходящие заявки)
+  const isFriendsPage = /\/friends(?:\?|$)/.test(currentUrl);
+  
   if (!isFriendsPage) return;
   
   if (checkInterval) clearInterval(checkInterval);
