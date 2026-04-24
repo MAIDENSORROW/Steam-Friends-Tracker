@@ -1,145 +1,121 @@
-// 🎮 Steam Friends Tracker - Fixed Syntax Version
-
+// 🎮 Steam Friends Tracker - Optimized Version
 let checkInterval = null;
-let hasInitialized = false;
 let lastNotificationTime = 0;
 const NOTIFICATION_COOLDOWN = 10000;
 
 function cleanAvatarUrl(url) {
-    if (!url) return null;
-    return url
-        .replace('avatars.akamai.steamstatic.com', 'avatars.steamstatic.com')
-        .replace('avatars.cloudflare.steamstatic.com', 'avatars.steamstatic.com')
-        .replace('_medium.', '.')
-        .replace('_small.', '.')
-        .replace('_full.', '.')
-        .replace(/\?t=\d+/, '')
-        .split('?')[0]
-        .split('&')[0];
+  if (!url) return null;
+  return url.replace('avatars.akamai.steamstatic.com', 'avatars.steamstatic.com')
+    .replace('avatars.cloudflare.steamstatic.com', 'avatars.steamstatic.com')
+    .replace('_medium.', '.').replace('_small.', '.').replace('_full.', '.')
+    .replace(/\?t=\d+/, '').split('?')[0].split('&')[0];
 }
 
 function getFriendsFromPage() {
-    const friends = [];
-    const seenIds = new Set();
-    const containers = document.querySelectorAll('div.friend_block_v2[data-steamid]');
+  const friends = [], seenIds = new Set();
+  const containers = document.querySelectorAll('div.friend_block_v2[data-steamid], div.friend_block_v2[data-miniprofile]');
+  
+  if (containers.length === 0) return [];
+  
+  containers.forEach(container => {
+    const steamId = container.getAttribute('data-steamid') || container.getAttribute('data-miniprofile');
+    if (!steamId || seenIds.has(steamId)) return;
     
-    if (containers.length === 0) return [];
+    let profileUrl = `https://steamcommunity.com/profiles/${steamId}`;
+    const overlay = container.querySelector('a.selectable_overlay');
+    if (overlay?.href) profileUrl = overlay.href.split('?')[0];
     
-    containers.forEach(container => {
-        const steamId = container.getAttribute('data-steamid') || container.getAttribute('data-miniprofile');
-        if (!steamId || seenIds.has(steamId)) return;
-        
-        let profileUrl = `https://steamcommunity.com/profiles/${steamId}`;
-        const overlay = container.querySelector('a.selectable_overlay[href*="/profiles/"], a.selectable_overlay[href*="/id/"]');
-        if (overlay?.href) profileUrl = overlay.href.split('?')[0];
-        
-        let name = 'Unknown';
-        const walker = document.createTreeWalker(container, NodeFilter.SHOW_TEXT, null);
-        let node;
-        const skipPatterns = [/^онлайн|в сети|offline|online|в игре|playing|last online|добавлен|recently/i, /^\d+$/, /^\•$/, /^[\s\-_]+$/];
-        
-        while (node = walker.nextNode()) {
-            const txt = node.textContent.trim();
-            if (!txt || txt.length < 2 || txt.length > 40) continue;
-            if (skipPatterns.some(p => p.test(txt))) continue;
-            const cleanName = txt.split('|')[0].trim();
-            if (cleanName.length >= 2 && cleanName.length <= 40) { name = cleanName; break; }
-        }
-        if (name === 'Unknown' || !name) {
-            name = container.getAttribute('aria-label') || overlay?.getAttribute('title') || steamId;
-        }
-        
-        let avatar = null;
-        const img = container.querySelector('img[src*="steamstatic.com"]');
-        if (img?.src) avatar = cleanAvatarUrl(img.src);
-        const finalAvatar = avatar || 'https://avatars.steamstatic.com/fef49e7fa7e1997310d705b2a6158ff8dc1cdfeb_full.jpg';
-        
-        seenIds.add(steamId);
-        friends.push({ id: steamId, name, avatar: finalAvatar, profileUrl });
-    });
-    return friends;
+    let name = 'Unknown';
+    const nameLink = container.querySelector('.friend_block_content');
+    if (nameLink) {
+        const rawName = nameLink.firstChild?.textContent?.trim();
+        if (rawName) name = rawName;
+    }
+
+    if (name === 'Unknown') {
+        name = container.getAttribute('aria-label') || overlay?.getAttribute('title') || steamId;
+    }
+    
+    let avatar = null;
+    const img = container.querySelector('img[src*="steamstatic.com"]');
+    if (img?.src) avatar = cleanAvatarUrl(img.src);
+    const finalAvatar = avatar || 'https://avatars.steamstatic.com/fef49e7fa7e1997310d705b2a6158ff8dc1cdfeb_full.jpg';
+    
+    seenIds.add(steamId);
+    friends.push({ id: steamId, name, avatar: finalAvatar, profileUrl });
+  });
+  return friends;
 }
 
 function checkAndSave() {
-    const currentFriends = getFriendsFromPage();
-    if (currentFriends.length === 0) return;
-    if (hasInitialized) return;
+  const currentFriends = getFriendsFromPage();
+  if (currentFriends.length === 0) return; // Ждем, пока страница прогрузится
+  
+  chrome.storage.local.get(['lastFriendsList', 'logs'], (result) => {
+    const lastList = result.lastFriendsList || [];
+    const logs = result.logs || [];
     
-    chrome.storage.local.get(['lastFriendsList', 'logs'], (result) => {
-        const lastList = result.lastFriendsList || [];
-        const logs = result.logs || [];
-        
-        const lastIds = new Set(lastList.map(f => f.id));
-        const currentIds = new Set(currentFriends.map(f => f.id));
-        
-        const newFriends = currentFriends.filter(f => !lastIds.has(f.id));
-        const removedFriends = lastList.filter(f => !currentIds.has(f.id));
-        
-        const hasChanges = newFriends.length > 0 || removedFriends.length > 0;
-        const isFirstLoad = lastList.length === 0;
-        
-        if (hasChanges || isFirstLoad) {
-            const timestamp = Date.now();
-            const newLog = { date: timestamp, new: newFriends, removed: removedFriends };
-            
-            if (!isFirstLoad && hasChanges) {
-                logs.unshift(newLog);
-                if (logs.length > 50) logs.pop();
-                
-                const now = Date.now();
-                if (now - lastNotificationTime > NOTIFICATION_COOLDOWN) {
-                    // 🔧 ИСПРАВЛЕНО: добавлен ключ data:
-                    chrome.runtime.sendMessage({
-                        type: 'SEND_NOTIFICATION',
-                        data: {
-                            newFriends: newFriends,
-                            removedFriends: removedFriends
-                        }
-                    }).catch(() => {});
-                    lastNotificationTime = now;
-                }
-            }
-            
-            hasInitialized = true;
-            chrome.storage.local.set({ lastFriendsList: currentFriends, logs: logs });
-        }
-    });
-}
+    // Если это самый первый запуск — просто сохраняем текущий список без записи в лог
+    if (lastList.length === 0) {
+      chrome.storage.local.set({ lastFriendsList: currentFriends, logs: [] });
+      return;
+    }
 
-function resetTracker() { hasInitialized = false; checkAndSave(); }
+    const lastIds = new Set(lastList.map(f => f.id));
+    const currentIds = new Set(currentFriends.map(f => f.id));
+    
+    const newFriends = currentFriends.filter(f => !lastIds.has(f.id));
+    const removedFriends = lastList.filter(f => !currentIds.has(f.id));
+    
+    if (newFriends.length > 0 || removedFriends.length > 0) {
+      const timestamp = Date.now();
+      const newLog = { date: timestamp, new: newFriends, removed: removedFriends };
+      
+      const updatedLogs = [newLog, ...logs].slice(0, 50);
+      
+      chrome.storage.local.set({ lastFriendsList: currentFriends, logs: updatedLogs }, () => {
+        // Оповещаем popup, если он открыт
+        chrome.runtime.sendMessage({ type: 'UPDATE_AVAILABLE' }).catch(() => {});
+      });
+
+      // Уведомление в Windows/macOS
+      if (timestamp - lastNotificationTime > NOTIFICATION_COOLDOWN) {
+        chrome.runtime.sendMessage({ type: 'SEND_NOTIFICATION', data: { newFriends, removedFriends } }).catch(() => {});
+        lastNotificationTime = timestamp;
+      }
+    }
+  });
+}
 
 function startTracking() {
-    const currentUrl = window.location.href;
-    const isMainFriendsPage = currentUrl.includes('/friends') && 
-                              !currentUrl.includes('/friends/pending') && 
-                              !currentUrl.includes('/friends/outgoing') &&
-                              !currentUrl.includes('/friends/blocked');
-    if (!isMainFriendsPage) return;
-    
-    hasInitialized = false;
-    if (checkInterval) clearInterval(checkInterval);
-    checkInterval = setInterval(checkAndSave, 2000);
-    
-    const observer = new MutationObserver((mutations) => {
-        const newUrl = window.location.href;
-        if (newUrl.includes('/friends') && !newUrl.includes('/friends/pending')) resetTracker();
-        const friendsBlocks = document.querySelectorAll('div.friend_block_v2[data-steamid]');
-        if (friendsBlocks.length > 0 && !hasInitialized) checkAndSave();
-    });
-    observer.observe(document.body, { childList: true, subtree: true });
-    
-    const originalPushState = history.pushState;
-    history.pushState = function(...args) { originalPushState.apply(this, args); resetTracker(); };
-    
-    setTimeout(checkAndSave, 2000);
+  const currentUrl = window.location.href;
+  const isFriendsPage = currentUrl.includes('/friends') && 
+                       !currentUrl.includes('/pending') && 
+                       !currentUrl.includes('/outgoing') && 
+                       !currentUrl.includes('/blocked');
+                       
+  if (!isFriendsPage) return;
+  
+  if (checkInterval) clearInterval(checkInterval);
+  checkInterval = setInterval(checkAndSave, 3000); // Проверка каждые 3 секунды
+  
+  const observer = new MutationObserver(() => {
+    if (document.querySelectorAll('div.friend_block_v2').length > 0) {
+        checkAndSave();
+    }
+  });
+  observer.observe(document.body, { childList: true, subtree: true });
 }
 
+// Запуск
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', startTracking);
-} else { startTracking(); }
+} else {
+    startTracking();
+}
 
-window.addEventListener('load', () => { setTimeout(startTracking, 3000); });
+window.addEventListener('load', () => setTimeout(startTracking, 1000));
 
-chrome.runtime.onMessage.addListener((msg) => {
-    if (msg?.type === 'MANUAL_CHECK') { hasInitialized = false; checkAndSave(); }
+chrome.runtime.onMessage.addListener((msg) => { 
+    if (msg?.type === 'MANUAL_CHECK') checkAndSave(); 
 });
