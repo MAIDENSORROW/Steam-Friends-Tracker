@@ -1,18 +1,19 @@
 {
-"update_url": "https://clients2.google.com/service/update2/crx",
-
+  "update_url": "https://clients2.google.com/service/update2/crx",
+  
   "manifest_version": 3,
-  "name": "Steam Friends Tracker",
-  "version": "1.0",
-  "description": "Отслеживает изменения в списке друзей Steam",
-  "permissions": ["storage", "notifications", "tabs"],
+  "name": "Steam Friends Tracker Pro",
+  "version": "2.0",
+  "description": "Трекер друзей с авто-мониторингом через Steam API, статусами и избранным",
+  "permissions": ["storage", "notifications", "alarms"],
   "host_permissions": [
-    "https://steamcommunity.com/",
-    "https://*.steamstatic.com/"
+    "https://steamcommunity.com/profiles/*/friends",
+    "https://steamcommunity.com/id/*/friends",
+    "https://api.steampowered.com/*"
   ],
   "action": {
     "default_popup": "popup.html",
-    "default_title": "Steam Friends Tracker",
+    "default_title": "Steam Friends Tracker Pro",
     "default_icon": {
       "16": "icon.png",
       "48": "icon.png",
@@ -29,14 +30,15 @@
   },
   "content_scripts": [{
     "matches": [
-      "https://steamcommunity.com/*/friends",
-      "https://steamcommunity.com/*/friends/*"
+      "https://steamcommunity.com/profiles/*/friends",
+      "https://steamcommunity.com/id/*/friends"
     ],
     "js": ["content.js"],
-    "run_at": "document_start"
+    "run_at": "document_idle",
+    "all_frames": false
   }],
   "web_accessible_resources": [{
     "resources": ["*.png", "*.ico", "*.mp4", "*.js"],
-    "matches": ["<all_urls>"]
+    "matches": ["https://steamcommunity.com/*"]
   }]
 }
