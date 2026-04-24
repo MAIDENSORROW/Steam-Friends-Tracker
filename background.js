@@ -250,6 +250,15 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     return true;
   }
   
+  // Обработчик для сохранения только Steam ID из OpenID
+  if (message.type === 'SET_STEAM_ID') {
+    chrome.storage.local.set({ [USER_STEAM_ID_KEY]: message.steamId }, () => {
+      console.log('[Background] Steam ID сохранён');
+      sendResponse({ success: true });
+    });
+    return true;
+  }
+  
   if (message.type === 'CLEAR_API_KEY') {
     chrome.storage.local.remove([API_KEY_STORAGE_KEY, USER_STEAM_ID_KEY], () => {
       console.log('[Background] API ключ удалён');

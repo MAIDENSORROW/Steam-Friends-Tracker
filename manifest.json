@@ -7,7 +7,8 @@
     "storage",
     "alarms",
     "activeTab",
-    "identity"
+    "identity",
+    "tabs"
   ],
   "host_permissions": [
     "https://api.steampowered.com/*",
@@ -20,19 +21,18 @@
   "action": {
     "default_popup": "popup.html",
     "default_icon": {
-      "16": "icons/icon16.png",
-      "48": "icons/icon48.png",
-      "128": "icons/icon128.png"
+      "16": "icon.png",
+      "48": "icon.png",
+      "128": "icon.png"
     }
   },
   "icons": {
-    "16": "icons/icon16.png",
-    "48": "icons/icon48.png",
-    "128": "icons/icon128.png"
+    "16": "icon.png",
+    "48": "icon.png",
+    "128": "icon.png"
   },
   "web_accessible_resources": [{
     "resources": ["*.png", "*.ico", "*.mp4", "*.js", "*.html"],
     "matches": ["https://steamcommunity.com/*"]
-  }],
-  "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA..."
+  }]
 }
