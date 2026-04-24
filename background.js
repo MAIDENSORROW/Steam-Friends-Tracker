@@ -1,6 +1,43 @@
-// 🔔 Background script
+// 🔔 Background script with Auto-Monitoring
 let lastNotificationTime = 0;
 const COOLDOWN = 10000;
+let monitoringInterval = null;
+
+// Функция для проверки всех вкладок Steam
+function checkAllSteamTabs() {
+  chrome.tabs.query({ url: '*://steamcommunity.com/*' }, (tabs) => {
+    tabs.forEach(tab => {
+      // Проверяем, является ли вкладка страницей друзей
+      const url = new URL(tab.url);
+      const path = url.pathname;
+      
+      // Точное совпадение с /friends без дополнительных сегментов
+      if (/^\/(?:id\/[^/]+|profiles\/\d+)\/friends$/.test(path)) {
+        // Отправляем сообщение content script для проверки
+        chrome.tabs.sendMessage(tab.id, { type: 'MANUAL_CHECK' }).catch(() => {});
+      }
+    });
+  });
+}
+
+// Запускаем авто-мониторинг каждые 5 секунд
+function startAutoMonitoring() {
+  if (monitoringInterval) clearInterval(monitoringInterval);
+  monitoringInterval = setInterval(checkAllSteamTabs, 5000);
+  console.log('[Background] Авто-мониторинг запущен');
+}
+
+// Останавливаем авто-мониторинг
+function stopAutoMonitoring() {
+  if (monitoringInterval) {
+    clearInterval(monitoringInterval);
+    monitoringInterval = null;
+    console.log('[Background] Авто-мониторинг остановлен');
+  }
+}
+
+// Запускаем мониторинг при запуске расширения
+startAutoMonitoring();
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.type === 'SEND_NOTIFICATION') {
@@ -11,6 +48,13 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     }
     sendNotification(message.data?.newFriends, message.data?.removedFriends);
     lastNotificationTime = now;
+    sendResponse({ success: true });
+    return true;
+  }
+  
+  // Обработка запроса на перезапуск мониторинга
+  if (message.type === 'RESTART_MONITORING') {
+    startAutoMonitoring();
     sendResponse({ success: true });
     return true;
   }

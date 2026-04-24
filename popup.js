@@ -1,10 +1,10 @@
 let currentFriends=[],searchQuery='',favoritesQuery='',statusFilter='',isTheme18Plus=false;
 const FRIEND_STATUSES = {
-  'none': { label: 'Без статуса', color: '#8b5a7d', icon: '' },
-  'playing_together': { label: '🎮 Играем вместе', color: '#4CAF50', icon: '🎮' },
-  'favorite': { label: '⭐ Любимый друг', color: '#FFD700', icon: '⭐' },
-  'inactive': { label: '💤 Давно не играл', color: '#9E9E9E', icon: '💤' },
-  'suspicious': { label: '⚠️ Подозрительный', color: '#f44336', icon: '⚠️' }
+  'none': { label: 'Без статуса', color: '#8b5a7d', icon: '', gradient: 'linear-gradient(135deg, #e0e0e0, #bdbdbd)' },
+  'playing_together': { label: '🎮 Играем вместе', color: '#4CAF50', icon: '🎮', gradient: 'linear-gradient(135deg, #4CAF50, #8BC34A)' },
+  'favorite': { label: '⭐ Любимый друг', color: '#FFD700', icon: '⭐', gradient: 'linear-gradient(135deg, #FFD700, #FFC107)' },
+  'inactive': { label: '💤 Давно не играл', color: '#9E9E9E', icon: '💤', gradient: 'linear-gradient(135deg, #9E9E9E, #757575)' },
+  'suspicious': { label: '⚠️ Подозрительный', color: '#f44336', icon: '⚠️', gradient: 'linear-gradient(135deg, #f44336, #e91e63)' }
 };
 
 function formatDate(ts){
@@ -54,7 +54,7 @@ function renderFriends(){
     filtered.forEach((f,i)=>{
       const status=statuses[f.id]||'none';
       const statusInfo=FRIEND_STATUSES[status];
-      h+=`<div class="friend-item" style="animation-delay:${i*0.05}s;border-left:4px solid ${statusInfo.color}"><img class="friend-avatar" src="${f.avatar||'https://avatars.steamstatic.com/fef49e7fa7e1997310d705b2a6158ff8dc1cdfeb_full.jpg'}"><div class="friend-info"><a class="friend-name" href="${f.url||f.profileUrl}" target="_blank">${esc(f.name)}</a><div class="friend-steamid">${f.id}</div>${status!=='none'?`<div class="friend-status-badge" style="color:${statusInfo.color};font-size:10px;font-weight:700;margin-top:4px;">${statusInfo.icon} ${statusInfo.label}</div>`:''}</div><button class="btn-set-status" data-id="${f.id}" style="background:rgba(255,255,255,0.3);border:none;border-radius:8px;padding:4px 8px;cursor:pointer;font-size:10px;">🏷️</button></div>`;
+      h+=`<div class="friend-item" style="animation-delay:${i*0.05}s;border-left:4px solid ${statusInfo.color}"><img class="friend-avatar" src="${f.avatar||'https://avatars.steamstatic.com/fef49e7fa7e1997310d705b2a6158ff8dc1cdfeb_full.jpg'}"><div class="friend-info"><a class="friend-name" href="${f.url||f.profileUrl}" target="_blank">${esc(f.name)}</a><div class="friend-steamid">${f.id}</div>${status!=='none'?`<div class="friend-status-badge" style="background:${statusInfo.gradient};color:#fff;font-size:10px;font-weight:800;margin-top:6px;padding:4px 10px;border-radius:12px;display:inline-block;box-shadow:0 2px 8px rgba(0,0,0,0.15);">${statusInfo.icon} ${statusInfo.label}</div>`:''}</div><button class="btn-set-status" data-id="${f.id}" style="background:${statusInfo.gradient};border:none;border-radius:10px;padding:6px 10px;cursor:pointer;font-size:12px;box-shadow:0 2px 8px rgba(0,0,0,0.15);transition:all 0.3s;">🏷️</button></div>`;
     });
     c.innerHTML=h;updateStats();
     
@@ -73,14 +73,14 @@ function renderFriends(){
 
 function showStatusMenu(friendId){
   const menu=document.createElement('div');
-  menu.style.cssText='position:fixed;background:#fff;border-radius:12px;box-shadow:0 4px 20px rgba(0,0,0,0.3);z-index:10000;overflow:hidden;animation:slideDown 0.2s ease;';
+  menu.style.cssText='position:fixed;background:linear-gradient(135deg,#fff0f5,#ffe4ec);border-radius:16px;box-shadow:0 8px 32px rgba(255,105,180,0.4);z-index:10000;overflow:hidden;animation:slideDown 0.3s cubic-bezier(0.68,-0.55,0.265,1.55);border:2px solid rgba(255,182,193,0.6);min-width:200px;';
   
   Object.entries(FRIEND_STATUSES).forEach(([key,value])=>{
     const item=document.createElement('div');
-    item.textContent=`${value.icon} ${value.label}`;
-    item.style.cssText=`padding:10px 16px;font-size:12px;font-weight:600;color:${value.color};cursor:pointer;transition:background 0.2s;`;
-    item.onmouseover=()=>item.style.background='rgba(0,0,0,0.05)';
-    item.onmouseout=()=>item.style.background='transparent';
+    item.innerHTML=`${value.icon} <span style="font-weight:700;">${value.label}</span>`;
+    item.style.cssText=`padding:12px 18px;font-size:13px;color:${value.color};cursor:pointer;transition:all 0.2s;display:flex;align-items:center;gap:8px;border-bottom:1px solid rgba(255,182,193,0.2);background:${value.gradient};-webkit-background-clip:text;background-clip:text;color:transparent;text-shadow:0 0 0 ${value.color};`;
+    item.onmouseover=()=>{item.style.transform='translateX(8px) scale(1.02)';item.style.boxShadow='0 4px 12px rgba(0,0,0,0.15)';};
+    item.onmouseout=()=>{item.style.transform='translateX(0) scale(1)';item.style.boxShadow='none';};
     item.onclick=()=>{
       chrome.storage.local.get(['friendStatuses'],(res)=>{
         const statuses=res.friendStatuses||{};
@@ -88,7 +88,7 @@ function showStatusMenu(friendId){
         else statuses[friendId]=key;
         chrome.storage.local.set({friendStatuses:statuses},()=>{
           renderFriends();
-          notify(`Статус установлен: ${value.label}`);
+          notify(`Статус установлен: ${value.label} ✨`);
         });
       });
       menu.remove();
