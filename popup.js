@@ -6,6 +6,7 @@ const FRIEND_STATUSES = {
   'inactive': { label: '💤 Давно не играл', color: '#9E9E9E', icon: '💤', gradient: 'linear-gradient(135deg, #9E9E9E, #757575)' },
   'suspicious': { label: '⚠️ Подозрительный', color: '#f44336', icon: '⚠️', gradient: 'linear-gradient(135deg, #f44336, #e91e63)' }
 };
+const INACTIVE_THRESHOLD_MS = 7 * 24 * 60 * 60 * 1000; // 7 дней в миллисекундах
 
 function formatDate(ts){
   const d=new Date(ts),n=new Date();
@@ -36,9 +37,19 @@ function filterFriends(friends,query){
 function renderFriends(){
   const c=document.getElementById('friends-list');
   if(!c)return;
-  chrome.storage.local.get(['lastFriendsList','friendStatuses'],(res)=>{
+  chrome.storage.local.get(['lastFriendsList','friendStatuses','friendLastOnline'],(res)=>{
     currentFriends=res.lastFriendsList||[];
     const statuses=res.friendStatuses||{};
+    const friendLastOnline=res.friendLastOnline||{};
+    const now=Date.now();
+    
+    // Автоматически применяем статус "inactive" для друзей, которых не было больше 7 дней
+    Object.keys(friendLastOnline).forEach(id=>{
+      const lastSeen=friendLastOnline[id];
+      if(now-lastSeen>INACTIVE_THRESHOLD_MS&&!statuses[id]){
+        statuses[id]='inactive';
+      }
+    });
     
     // Применяем фильтр по статусу
     let filtered=searchQuery?filterFriends(currentFriends,searchQuery):currentFriends;
@@ -54,7 +65,9 @@ function renderFriends(){
     filtered.forEach((f,i)=>{
       const status=statuses[f.id]||'none';
       const statusInfo=FRIEND_STATUSES[status];
-      h+=`<div class="friend-item" style="animation-delay:${i*0.05}s;border-left:4px solid ${statusInfo.color}"><img class="friend-avatar" src="${f.avatar||'https://avatars.steamstatic.com/fef49e7fa7e1997310d705b2a6158ff8dc1cdfeb_full.jpg'}"><div class="friend-info"><a class="friend-name" href="${f.url||f.profileUrl}" target="_blank">${esc(f.name)}</a><div class="friend-steamid">${f.id}</div>${status!=='none'?`<div class="friend-status-badge" style="background:${statusInfo.gradient};color:#fff;font-size:10px;font-weight:800;margin-top:6px;padding:4px 10px;border-radius:12px;display:inline-block;box-shadow:0 2px 8px rgba(0,0,0,0.15);">${statusInfo.icon} ${statusInfo.label}</div>`:''}</div><button class="btn-set-status" data-id="${f.id}" style="background:${statusInfo.gradient};border:none;border-radius:10px;padding:6px 10px;cursor:pointer;font-size:12px;box-shadow:0 2px 8px rgba(0,0,0,0.15);transition:all 0.3s;">🏷️</button></div>`;
+      const lastSeen=friendLastOnline[f.id];
+      const lastSeenText=lastSeen?`<div style="font-size:9px;color:#c44582;margin-top:3px;">Был в сети: ${formatDate(lastSeen)}</div>`:'';
+      h+=`<div class="friend-item" style="animation-delay:${i*0.05}s;border-left:4px solid ${statusInfo.color}"><img class="friend-avatar" src="${f.avatar||'https://avatars.steamstatic.com/fef49e7fa7e1997310d705b2a6158ff8dc1cdfeb_full.jpg'}"><div class="friend-info"><a class="friend-name" href="${f.url||f.profileUrl}" target="_blank">${esc(f.name)}</a><div class="friend-steamid">${f.id}</div>${lastSeenText}${status!=='none'?`<div class="friend-status-badge" style="background:${statusInfo.gradient};color:#fff;font-size:10px;font-weight:800;margin-top:6px;padding:4px 10px;border-radius:12px;display:inline-block;box-shadow:0 2px 8px rgba(0,0,0,0.15);">${statusInfo.icon} ${statusInfo.label}</div>`:''}</div><button class="btn-set-status" data-id="${f.id}" style="background:${statusInfo.gradient};border:none;border-radius:10px;padding:6px 10px;cursor:pointer;font-size:12px;box-shadow:0 2px 8px rgba(0,0,0,0.15);transition:all 0.3s;">🏷️</button></div>`;
     });
     c.innerHTML=h;updateStats();
     

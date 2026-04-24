@@ -49,19 +49,27 @@ function getFriendsFromPage() {
 
 function checkAndSave() {
   const currentFriends = getFriendsFromPage();
+  
+  // Если друзей не найдено на странице — НЕ обновляем сохранённый список
+  // Это предотвращает стирание данных при переходе на другие вкладки (заблокированные, подписки и т.д.)
   if (currentFriends.length === 0) {
-    console.log('[Steam Friends Tracker] Список друзей пуст или страница не загружена, пропускаем сохранение');
+    console.log('[Steam Friends Tracker] Друзья не найдены на странице, пропускаем сохранение (возможно, это не основная страница друзей)');
     return;
   }
 
-  chrome.storage.local.get(['lastFriendsList', 'logs'], (result) => {
+  chrome.storage.local.get(['lastFriendsList', 'logs', 'friendLastOnline'], (result) => {
     const lastList = result.lastFriendsList || [];
     const logs = result.logs || [];
+    const friendLastOnline = result.friendLastOnline || {};
 
     // Если это самый первый запуск — просто сохраняем текущий список без записи в лог
     if (lastList.length === 0) {
       console.log('[Steam Friends Tracker] Первый запуск, сохраняем список из', currentFriends.length, 'друзей');
-      chrome.storage.local.set({ lastFriendsList: currentFriends, logs: [] });
+      chrome.storage.local.set({ 
+        lastFriendsList: currentFriends, 
+        logs: [],
+        friendLastOnline: friendLastOnline
+      });
       return;
     }
 
@@ -71,6 +79,12 @@ function checkAndSave() {
     const newFriends = currentFriends.filter(f => !lastIds.has(f.id));
     const removedFriends = lastList.filter(f => !currentIds.has(f.id));
 
+    // Обновляем время последнего появления для текущих друзей
+    const now = Date.now();
+    currentFriends.forEach(f => {
+      friendLastOnline[f.id] = now;
+    });
+
     if (newFriends.length > 0 || removedFriends.length > 0) {
       const timestamp = Date.now();
       const newLog = { date: timestamp, new: newFriends, removed: removedFriends };
@@ -79,7 +93,11 @@ function checkAndSave() {
 
       console.log('[Steam Friends Tracker] Изменения найдены:', newFriends.length, 'новых,', removedFriends.length, 'удалённых');
 
-      chrome.storage.local.set({ lastFriendsList: currentFriends, logs: updatedLogs }, () => {
+      chrome.storage.local.set({ 
+        lastFriendsList: currentFriends, 
+        logs: updatedLogs,
+        friendLastOnline: friendLastOnline
+      }, () => {
         chrome.runtime.sendMessage({ type: 'UPDATE_AVAILABLE' }).catch(() => {});
       });
 
@@ -89,6 +107,8 @@ function checkAndSave() {
       }
     } else {
       console.log('[Steam Friends Tracker] Изменений нет, список не обновляем');
+      // Всё равно обновляем время последнего появления
+      chrome.storage.local.set({ friendLastOnline: friendLastOnline });
     }
   });
 }
@@ -96,7 +116,8 @@ function checkAndSave() {
 function isExactFriendsPage() {
   const path = window.location.pathname;
   // Точное совпадение: /friends в конце URL без дополнительных сегментов
-  return /^\/(?:id\/[^/]+|profiles\/\d+)\/friends$/.test(path);
+  // Проверяем что URL заканчивается на /friends и после него нет ничего (кроме возможных query параметров)
+  return /^\/(?:id\/[^/]+|profiles\/\d+)\/friends(?:\?.*)?$/.test(path);
 }
 
 function startTracking() {
@@ -160,3 +181,6 @@ history.replaceState = function(...args) {
   console.log('[Steam Friends Tracker] replaceState вызван, новая URL:', window.location.pathname);
   setTimeout(startTracking, 300);
 };
+
+// ВАЖНО: При уходе со страницы друзей НЕ очищаем сохранённые данные
+// Данные хранятся в chrome.storage.local и не зависят от текущей страницы
