@@ -1,4 +1,4 @@
-// 🎮 Steam Friends Tracker - Optimized Version
+// 🎮 Steam Friends Tracker - Optimized Version with Auto-Monitoring
 let checkInterval = null;
 let lastNotificationTime = 0;
 const NOTIFICATION_COOLDOWN = 10000;
@@ -50,7 +50,7 @@ function getFriendsFromPage() {
 function checkAndSave() {
   const currentFriends = getFriendsFromPage();
   if (currentFriends.length === 0) {
-    console.log('[Steam Friends Tracker] Список друзей пуст, пропускаем сохранение');
+    console.log('[Steam Friends Tracker] Список друзей пуст или страница не загружена, пропускаем сохранение');
     return;
   }
 
@@ -93,13 +93,17 @@ function checkAndSave() {
   });
 }
 
-function startTracking() {
-  const currentUrl = window.location.pathname;
-  // Проверяем, что это ТОЛЬКО страница друзей (ровно /friends без продолжения)
-  const isExactFriendsPage = /^\/friends$/.test(currentUrl);
+function isExactFriendsPage() {
+  const path = window.location.pathname;
+  // Точное совпадение: /friends в конце URL без дополнительных сегментов
+  return /^\/(?:id\/[^/]+|profiles\/\d+)\/friends$/.test(path);
+}
 
-  if (!isExactFriendsPage) {
-    console.log('[Steam Friends Tracker] Не страница друзей (' + currentUrl + '), отслеживание отключено');
+function startTracking() {
+  if (!isExactFriendsPage()) {
+    console.log('[Steam Friends Tracker] Не страница друзей (' + window.location.pathname + '), отслеживание отключено');
+    if (checkInterval) clearInterval(checkInterval);
+    checkInterval = null;
     return;
   }
 
@@ -107,6 +111,9 @@ function startTracking() {
 
   if (checkInterval) clearInterval(checkInterval);
   checkInterval = setInterval(checkAndSave, 3000);
+  
+  // Первая проверка сразу после запуска
+  setTimeout(checkAndSave, 500);
 
   const observer = new MutationObserver(() => {
     if (document.querySelectorAll('div.friend_block_v2').length > 0) {
@@ -116,7 +123,7 @@ function startTracking() {
   observer.observe(document.body, { childList: true, subtree: true });
 }
 
-// Запуск
+// Запуск при загрузке страницы
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', startTracking);
 } else {
@@ -126,13 +133,16 @@ if (document.readyState === 'loading') {
 window.addEventListener('load', () => setTimeout(startTracking, 1000));
 
 chrome.runtime.onMessage.addListener((msg) => {
-    if (msg?.type === 'MANUAL_CHECK') checkAndSave();
+    if (msg?.type === 'MANUAL_CHECK') {
+        checkAndSave();
+        return true;
+    }
 });
 
-// Отслеживаем переходы по страницам через History API
+// Отслеживаем переходы по страницам через History API (SPA навигация Steam)
 window.addEventListener('popstate', () => {
-  console.log('[Steam Friends Tracker] Навигация назад/вперёд, перезапускаем отслеживание');
-  startTracking();
+  console.log('[Steam Friends Tracker] Навигация popstate, новая URL:', window.location.pathname);
+  setTimeout(startTracking, 300);
 });
 
 // Перехватываем pushState для SPA-навигации Steam
@@ -140,5 +150,13 @@ const originalPushState = history.pushState;
 history.pushState = function(...args) {
   originalPushState.apply(this, args);
   console.log('[Steam Friends Tracker] pushState вызван, новая URL:', window.location.pathname);
-  startTracking();
+  setTimeout(startTracking, 300);
+};
+
+// Также перехватываем replaceState
+const originalReplaceState = history.replaceState;
+history.replaceState = function(...args) {
+  originalReplaceState.apply(this, args);
+  console.log('[Steam Friends Tracker] replaceState вызван, новая URL:', window.location.pathname);
+  setTimeout(startTracking, 300);
 };
