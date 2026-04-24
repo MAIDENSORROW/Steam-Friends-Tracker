@@ -1,4 +1,11 @@
-let currentFriends=[],searchQuery='',favoritesQuery='',isTheme18Plus=false;
+let currentFriends=[],searchQuery='',favoritesQuery='',statusFilter='',isTheme18Plus=false;
+const FRIEND_STATUSES = {
+  'none': { label: 'Без статуса', color: '#8b5a7d', icon: '' },
+  'playing_together': { label: '🎮 Играем вместе', color: '#4CAF50', icon: '🎮' },
+  'favorite': { label: '⭐ Любимый друг', color: '#FFD700', icon: '⭐' },
+  'inactive': { label: '💤 Давно не играл', color: '#9E9E9E', icon: '💤' },
+  'suspicious': { label: '⚠️ Подозрительный', color: '#f44336', icon: '⚠️' }
+};
 
 function formatDate(ts){
   const d=new Date(ts),n=new Date();
@@ -29,17 +36,75 @@ function filterFriends(friends,query){
 function renderFriends(){
   const c=document.getElementById('friends-list');
   if(!c)return;
-  chrome.storage.local.get(['lastFriendsList'],(res)=>{
+  chrome.storage.local.get(['lastFriendsList','friendStatuses'],(res)=>{
     currentFriends=res.lastFriendsList||[];
-    const filtered=filterFriends(currentFriends,searchQuery);
+    const statuses=res.friendStatuses||{};
+    
+    // Применяем фильтр по статусу
+    let filtered=searchQuery?filterFriends(currentFriends,searchQuery):currentFriends;
+    if(statusFilter&&statusFilter!=='none'){
+      filtered=filtered.filter(f=>statuses[f.id]===statusFilter);
+    }
+    
     if(!filtered.length){
-      c.innerHTML=`<div class="empty-state"><div class="empty-icon">📭</div><div class="empty-text">Друзей не найдено</div><div class="empty-hint">${searchQuery?'Попробуйте другой запрос':'Зайдите на страницу друзей в Steam~'}</div></div>`;
+      c.innerHTML=`<div class="empty-state"><div class="empty-icon">📭</div><div class="empty-text">Друзей не найдено</div><div class="empty-hint">${searchQuery||statusFilter?'Попробуйте изменить фильтры':'Зайдите на страницу друзей в Steam~'}</div></div>`;
       return;
     }
     let h='';
-    filtered.forEach((f,i)=>{h+=`<div class="friend-item" style="animation-delay:${i*0.05}s"><img class="friend-avatar" src="${f.avatar||'https://avatars.steamstatic.com/fef49e7fa7e1997310d705b2a6158ff8dc1cdfeb_full.jpg'}"><div class="friend-info"><a class="friend-name" href="${f.url||f.profileUrl}" target="_blank">${esc(f.name)}</a><div class="friend-steamid">${f.id}</div></div></div>`;});
+    filtered.forEach((f,i)=>{
+      const status=statuses[f.id]||'none';
+      const statusInfo=FRIEND_STATUSES[status];
+      h+=`<div class="friend-item" style="animation-delay:${i*0.05}s;border-left:4px solid ${statusInfo.color}"><img class="friend-avatar" src="${f.avatar||'https://avatars.steamstatic.com/fef49e7fa7e1997310d705b2a6158ff8dc1cdfeb_full.jpg'}"><div class="friend-info"><a class="friend-name" href="${f.url||f.profileUrl}" target="_blank">${esc(f.name)}</a><div class="friend-steamid">${f.id}</div>${status!=='none'?`<div class="friend-status-badge" style="color:${statusInfo.color};font-size:10px;font-weight:700;margin-top:4px;">${statusInfo.icon} ${statusInfo.label}</div>`:''}</div><button class="btn-set-status" data-id="${f.id}" style="background:rgba(255,255,255,0.3);border:none;border-radius:8px;padding:4px 8px;cursor:pointer;font-size:10px;">🏷️</button></div>`;
+    });
     c.innerHTML=h;updateStats();
+    
+    // Обработчики кнопок статуса
+    setTimeout(()=>{
+      document.querySelectorAll('.btn-set-status').forEach(btn=>{
+        btn.addEventListener('click',(e)=>{
+          e.stopPropagation();
+          const id=btn.dataset.id;
+          showStatusMenu(id);
+        });
+      });
+    },100);
   });
+}
+
+function showStatusMenu(friendId){
+  const menu=document.createElement('div');
+  menu.style.cssText='position:fixed;background:#fff;border-radius:12px;box-shadow:0 4px 20px rgba(0,0,0,0.3);z-index:10000;overflow:hidden;animation:slideDown 0.2s ease;';
+  
+  Object.entries(FRIEND_STATUSES).forEach(([key,value])=>{
+    const item=document.createElement('div');
+    item.textContent=`${value.icon} ${value.label}`;
+    item.style.cssText=`padding:10px 16px;font-size:12px;font-weight:600;color:${value.color};cursor:pointer;transition:background 0.2s;`;
+    item.onmouseover=()=>item.style.background='rgba(0,0,0,0.05)';
+    item.onmouseout=()=>item.style.background='transparent';
+    item.onclick=()=>{
+      chrome.storage.local.get(['friendStatuses'],(res)=>{
+        const statuses=res.friendStatuses||{};
+        if(key==='none')delete statuses[friendId];
+        else statuses[friendId]=key;
+        chrome.storage.local.set({friendStatuses:statuses},()=>{
+          renderFriends();
+          notify(`Статус установлен: ${value.label}`);
+        });
+      });
+      menu.remove();
+    };
+    menu.appendChild(item);
+  });
+  
+  document.body.appendChild(menu);
+  menu.style.right='20px';
+  menu.style.top='100px';
+  
+  setTimeout(()=>{
+    document.addEventListener('click',function close(e){
+      if(!menu.contains(e.target)){menu.remove();document.removeEventListener('click',close);}
+    },{once:true});
+  },100);
 }
 
 function renderFavorites(){
@@ -136,6 +201,15 @@ function initSearch(){
   const favInput=document.getElementById('favorites-search');
   if(favInput){
     favInput.addEventListener('input',(e)=>{favoritesQuery=e.target.value;renderFavorites();});
+  }
+  
+  // Фильтр по статусам
+  const statusFilterSelect=document.getElementById('status-filter');
+  if(statusFilterSelect){
+    statusFilterSelect.addEventListener('change',(e)=>{
+      statusFilter=e.target.value;
+      renderFriends();
+    });
   }
 }
 
