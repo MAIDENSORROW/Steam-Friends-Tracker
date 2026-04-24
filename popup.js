@@ -263,50 +263,75 @@ function clearApiKey(){
   });
 }
 
-// Steam OpenID Login
+// Steam OpenID Login - Исправленная версия
 function initiateSteamLogin(){
-  const redirectUri=chrome.identity.getRedirectURL('steam-callback');
-  const openIdUrl=`https://steamcommunity.com/openid/login?openid.ns=http://specs.openid.net/auth/2.0&openid.mode=checkid_setup&openid.return_to=${encodeURIComponent(redirectUri)}&openid.realm=https://steamcommunity.com&openid.identity=http://specs.openid.net/auth/2.0/identifier_select&openid.claimed_id=http://specs.openid.net/auth/2.0/identifier_select`;
+  const redirectUri = chrome.identity.getRedirectURL('steam-callback');
+  
+  // Формируем правильный URL для Steam OpenID с явным указанием return_to
+  const openIdUrl = `https://steamcommunity.com/openid/login?openid.ns=http://specs.openid.net/auth/2.0&openid.mode=checkid_setup&openid.return_to=${encodeURIComponent(redirectUri)}&openid.realm=${encodeURIComponent(redirectUri.split('/').slice(0, 3).join('/'))}&openid.identity=http://specs.openid.net/auth/2.0/identifier_select&openid.claimed_id=http://specs.openid.net/auth/2.0/identifier_select`;
+  
+  console.log('[OpenID] Redirect URI:', redirectUri);
+  console.log('[OpenID] Auth URL:', openIdUrl);
   
   chrome.identity.launchWebAuthFlow({
-    url:openIdUrl,
-    interactive:true
-  },(redirectUrl)=>{
-    if(chrome.runtime.lastError){
-      notify('⚠️ Ошибка входа: '+chrome.runtime.lastError.message);
+    url: openIdUrl,
+    interactive: true
+  }, function(redirectUrl) {
+    if (chrome.runtime.lastError) {
+      console.error('[OpenID] Error:', chrome.runtime.lastError);
+      notify('⚠️ Ошибка входа: ' + chrome.runtime.lastError.message);
       return;
     }
     
+    console.log('[OpenID] Redirect URL:', redirectUrl);
+    
     // Парсим redirect URL для получения Steam ID
-    const urlObj=new URL(redirectUrl);
-    const openidParams={};
-    urlObj.searchParams.forEach((v,k)=>{openidParams[k]=v;});
-    
-    // Получаем Steam ID из openid.claimed_id
-    const claimedId=openidParams['openid.claimed_id']||'';
-    const steamIdMatch=claimedId.match(/\/(\d+)$/);
-    
-    if(steamIdMatch&&steamIdMatch[1]){
-      const steamId=steamIdMatch[1];
-      notify('✅ Steam ID получен: '+steamId);
-      
-      // Сохраняем Steam ID через background.js
-      chrome.runtime.sendMessage({type:'SET_STEAM_ID',steamId},()=>{
-        // Проверяем есть ли уже сохранённый API ключ
-        chrome.storage.local.get(['steamWebApiKey'],(res)=>{
-          if(res.steamWebApiKey){
-            notify('✅ Вход выполнен успешно!');
-            checkApiStatus();
-            chrome.runtime.sendMessage({type:'FETCH_NOW'});
-          }else{
-            // API ключа нет, показываем инструкцию
-            notify('ℹ️ Теперь получите API ключ по инструкции ниже');
-            checkApiStatus();
-          }
-        });
+    try {
+      const urlObj = new URL(redirectUrl);
+      const openidParams = {};
+      urlObj.searchParams.forEach((v, k) => {
+        openidParams[k] = v;
       });
-    }else{
-      notify('⚠️ Не удалось получить Steam ID');
+      
+      console.log('[OpenID] Params:', openidParams);
+      
+      // Проверяем наличие mode=error
+      if (openidParams['openid.mode'] === 'error') {
+        notify('⚠️ Ошибка Steam: ' + (openidParams['openid.error'] || 'Неизвестная ошибка'));
+        return;
+      }
+      
+      // Получаем Steam ID из openid.claimed_id
+      const claimedId = openidParams['openid.claimed_id'] || '';
+      const steamIdMatch = claimedId.match(/\/(\d+)$/);
+      
+      if (steamIdMatch && steamIdMatch[1]) {
+        const steamId = steamIdMatch[1];
+        console.log('[OpenID] Steam ID получен:', steamId);
+        notify('✅ Steam ID получен: ' + steamId);
+        
+        // Сохраняем Steam ID через background.js
+        chrome.runtime.sendMessage({type: 'SET_STEAM_ID', steamId}, () => {
+          // Проверяем есть ли уже сохранённый API ключ
+          chrome.storage.local.get(['steamWebApiKey'], (res) => {
+            if (res.steamWebApiKey) {
+              notify('✅ Вход выполнен успешно!');
+              checkApiStatus();
+              chrome.runtime.sendMessage({type: 'FETCH_NOW'});
+            } else {
+              // API ключа нет, показываем инструкцию
+              notify('ℹ️ Теперь получите API ключ по инструкции ниже');
+              checkApiStatus();
+            }
+          });
+        });
+      } else {
+        console.error('[OpenID] Не удалось извлечь Steam ID из:', claimedId);
+        notify('⚠️ Не удалось получить Steam ID');
+      }
+    } catch (e) {
+      console.error('[OpenID] Ошибка парсинга URL:', e);
+      notify('⚠️ Ошибка обработки ответа: ' + e.message);
     }
   });
 }
