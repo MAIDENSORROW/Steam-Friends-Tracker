@@ -1,7 +1,10 @@
-// 🎮 Steam Friends Tracker - Optimized Version with Auto-Monitoring
+// 🎮 Steam Friends Tracker Pro - Content Script with Exact Page Matching
 let checkInterval = null;
 let lastNotificationTime = 0;
 const NOTIFICATION_COOLDOWN = 10000;
+
+// Флаг: находимся ли мы на странице друзей
+let isOnFriendsPage = false;
 
 function cleanAvatarUrl(url) {
   if (!url) return null;
@@ -48,12 +51,18 @@ function getFriendsFromPage() {
 }
 
 function checkAndSave() {
+  // Если мы не на странице друзей - ничего не делаем
+  if (!isOnFriendsPage) {
+    console.log('[Steam Friends Tracker] Не на странице друзей, пропускаем проверку');
+    return;
+  }
+
   const currentFriends = getFriendsFromPage();
   
   // Если друзей не найдено на странице — НЕ обновляем сохранённый список
   // Это предотвращает стирание данных при переходе на другие вкладки (заблокированные, подписки и т.д.)
   if (currentFriends.length === 0) {
-    console.log('[Steam Friends Tracker] Друзья не найдены на странице, пропускаем сохранение (возможно, это не основная страница друзей)');
+    console.log('[Steam Friends Tracker] Друзья не найдены на странице, пропускаем сохранение');
     return;
   }
 
@@ -106,7 +115,7 @@ function checkAndSave() {
         lastNotificationTime = timestamp;
       }
     } else {
-      console.log('[Steam Friends Tracker] Изменений нет, список не обновляем');
+      console.log('[Steam Friends Tracker] Изменений нет, обновляем только время последнего появления');
       // Всё равно обновляем время последнего появления
       chrome.storage.local.set({ friendLastOnline: friendLastOnline });
     }
@@ -120,8 +129,24 @@ function isExactFriendsPage() {
   return /^\/(?:id\/[^/]+|profiles\/\d+)\/friends(?:\?.*)?$/.test(path);
 }
 
+function updatePageStatus() {
+  const wasOnPage = isOnFriendsPage;
+  isOnFriendsPage = isExactFriendsPage();
+  
+  if (wasOnPage && !isOnFriendsPage) {
+    // Ушли со страницы друзей - останавливаем интервал
+    console.log('[Steam Friends Tracker] Ушли со страницы друзей, останавливаем отслеживание');
+    if (checkInterval) clearInterval(checkInterval);
+    checkInterval = null;
+  } else if (!wasOnPage && isOnFriendsPage) {
+    // Пришли на страницу друзей - запускаем отслеживание
+    console.log('[Steam Friends Tracker] Перешли на страницу друзей, запускаем отслеживание');
+    startTracking();
+  }
+}
+
 function startTracking() {
-  if (!isExactFriendsPage()) {
+  if (!isOnFriendsPage) {
     console.log('[Steam Friends Tracker] Не страница друзей (' + window.location.pathname + '), отслеживание отключено');
     if (checkInterval) clearInterval(checkInterval);
     checkInterval = null;
@@ -146,16 +171,25 @@ function startTracking() {
 
 // Запуск при загрузке страницы
 if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', startTracking);
+    document.addEventListener('DOMContentLoaded', () => {
+      updatePageStatus();
+      if (isOnFriendsPage) startTracking();
+    });
 } else {
-    startTracking();
+    updatePageStatus();
+    if (isOnFriendsPage) startTracking();
 }
 
-window.addEventListener('load', () => setTimeout(startTracking, 1000));
+window.addEventListener('load', () => {
+  setTimeout(() => {
+    updatePageStatus();
+    if (isOnFriendsPage) startTracking();
+  }, 1000);
+});
 
 chrome.runtime.onMessage.addListener((msg) => {
     if (msg?.type === 'MANUAL_CHECK') {
-        checkAndSave();
+        if (isOnFriendsPage) checkAndSave();
         return true;
     }
 });
@@ -163,7 +197,7 @@ chrome.runtime.onMessage.addListener((msg) => {
 // Отслеживаем переходы по страницам через History API (SPA навигация Steam)
 window.addEventListener('popstate', () => {
   console.log('[Steam Friends Tracker] Навигация popstate, новая URL:', window.location.pathname);
-  setTimeout(startTracking, 300);
+  setTimeout(updatePageStatus, 300);
 });
 
 // Перехватываем pushState для SPA-навигации Steam
@@ -171,7 +205,7 @@ const originalPushState = history.pushState;
 history.pushState = function(...args) {
   originalPushState.apply(this, args);
   console.log('[Steam Friends Tracker] pushState вызван, новая URL:', window.location.pathname);
-  setTimeout(startTracking, 300);
+  setTimeout(updatePageStatus, 300);
 };
 
 // Также перехватываем replaceState
@@ -179,8 +213,5 @@ const originalReplaceState = history.replaceState;
 history.replaceState = function(...args) {
   originalReplaceState.apply(this, args);
   console.log('[Steam Friends Tracker] replaceState вызван, новая URL:', window.location.pathname);
-  setTimeout(startTracking, 300);
+  setTimeout(updatePageStatus, 300);
 };
-
-// ВАЖНО: При уходе со страницы друзей НЕ очищаем сохранённые данные
-// Данные хранятся в chrome.storage.local и не зависят от текущей страницы

@@ -1,9 +1,12 @@
 let currentFriends=[],searchQuery='',favoritesQuery='',statusFilter='',isTheme18Plus=false;
 const FRIEND_STATUSES = {
   'none': { label: 'Без статуса', color: '#8b5a7d', icon: '', gradient: 'linear-gradient(135deg, #e0e0e0, #bdbdbd)' },
+  'online': { label: '🟢 В сети', color: '#4CAF50', icon: '🟢', gradient: 'linear-gradient(135deg, #4CAF50, #8BC34A)' },
+  'ingame': { label: '🎮 В игре', color: '#2196F3', icon: '🎮', gradient: 'linear-gradient(135deg, #2196F3, #03A9F4)' },
+  'offline': { label: '⚫ Не в сети', color: '#9E9E9E', icon: '⚫', gradient: 'linear-gradient(135deg, #9E9E9E, #757575)' },
   'playing_together': { label: '🎮 Играем вместе', color: '#4CAF50', icon: '🎮', gradient: 'linear-gradient(135deg, #4CAF50, #8BC34A)' },
   'favorite': { label: '⭐ Любимый друг', color: '#FFD700', icon: '⭐', gradient: 'linear-gradient(135deg, #FFD700, #FFC107)' },
-  'inactive': { label: '💤 Давно не играл', color: '#9E9E9E', icon: '💤', gradient: 'linear-gradient(135deg, #9E9E9E, #757575)' },
+  'inactive': { label: '💤 Давно не заходил', color: '#f44336', icon: '💤', gradient: 'linear-gradient(135deg, #f44336, #e91e63)' },
   'suspicious': { label: '⚠️ Подозрительный', color: '#f44336', icon: '⚠️', gradient: 'linear-gradient(135deg, #f44336, #e91e63)' }
 };
 const INACTIVE_THRESHOLD_MS = 7 * 24 * 60 * 60 * 1000; // 7 дней в миллисекундах
