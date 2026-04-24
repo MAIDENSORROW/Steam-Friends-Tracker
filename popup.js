@@ -227,9 +227,11 @@ function checkApiStatus(){
       statusEl.innerHTML=`✅ Подключено<br><small style="opacity:0.8;">Steam ID: ${response.steamId}</small>`;
       document.getElementById('api-key-input').value='';
       document.getElementById('steam-id-input').value='';
+      document.getElementById('steam-login-btn').style.display='none';
     }else{
       statusEl.className='api-status disconnected';
       statusEl.innerHTML='❌ Не подключено';
+      document.getElementById('steam-login-btn').style.display='block';
     }
   });
 }
@@ -261,9 +263,58 @@ function clearApiKey(){
   });
 }
 
+// Steam OpenID Login
+function initiateSteamLogin(){
+  const redirectUri=chrome.identity.getRedirectURL('steam-callback');
+  const openIdUrl=`https://steamcommunity.com/openid/login?openid.ns=http://specs.openid.net/auth/2.0&openid.mode=checkid_setup&openid.return_to=${encodeURIComponent(redirectUri)}&openid.realm=https://steamcommunity.com&openid.identity=http://specs.openid.net/auth/2.0/identifier_select&openid.claimed_id=http://specs.openid.net/auth/2.0/identifier_select`;
+  
+  chrome.identity.launchWebAuthFlow({
+    url:openIdUrl,
+    interactive:true
+  },(redirectUrl)=>{
+    if(chrome.runtime.lastError){
+      notify('⚠️ Ошибка входа: '+chrome.runtime.lastError.message);
+      return;
+    }
+    
+    // Парсим redirect URL для получения Steam ID
+    const urlObj=new URL(redirectUrl);
+    const openidParams={};
+    urlObj.searchParams.forEach((v,k)=>{openidParams[k]=v;});
+    
+    // Получаем Steam ID из openid.claimed_id
+    const claimedId=openidParams['openid.claimed_id']||'';
+    const steamIdMatch=claimedId.match(/\/(\d+)$/);
+    
+    if(steamIdMatch&&steamIdMatch[1]){
+      const steamId=steamIdMatch[1];
+      notify('✅ Steam ID получен: '+steamId);
+      
+      // Сохраняем Steam ID через background.js
+      chrome.runtime.sendMessage({type:'SET_STEAM_ID',steamId},()=>{
+        // Проверяем есть ли уже сохранённый API ключ
+        chrome.storage.local.get(['steamWebApiKey'],(res)=>{
+          if(res.steamWebApiKey){
+            notify('✅ Вход выполнен успешно!');
+            checkApiStatus();
+            chrome.runtime.sendMessage({type:'FETCH_NOW'});
+          }else{
+            // API ключа нет, показываем инструкцию
+            notify('ℹ️ Теперь получите API ключ по инструкции ниже');
+            checkApiStatus();
+          }
+        });
+      });
+    }else{
+      notify('⚠️ Не удалось получить Steam ID');
+    }
+  });
+}
+
 function initApiTab(){
   document.getElementById('save-api-btn').addEventListener('click',saveApiKey);
   document.getElementById('clear-api-btn').addEventListener('click',clearApiKey);
+  document.getElementById('steam-login-btn').addEventListener('click',initiateSteamLogin);
 }
 
 document.addEventListener('DOMContentLoaded',()=>{
