@@ -34,9 +34,5 @@
   "web_accessible_resources": [{
     "resources": ["*.png", "*.ico", "*.mp4", "*.js", "*.html"],
     "matches": ["https://steamcommunity.com/*"]
-  }],
-  "oauth2": {
-    "client_id": "",
-    "scopes": []
-  }
+  }]
 }
