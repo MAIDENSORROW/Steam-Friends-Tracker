@@ -145,6 +145,14 @@ body.theme-18plus .api-help{background:rgba(0,0,0,0.3);color:rgba(255,255,255,0.
     <div class="api-settings">
       <h3 style="margin-bottom:15px;font-size:16px;color:#ff6b9d;">🔑 Настройка Steam Web API</h3>
       <div id="api-status" class="api-status disconnected">❌ Не подключено</div>
+      
+      <!-- Кнопка входа через Steam -->
+      <button class="btn" id="steam-login-btn" style="background:linear-gradient(135deg,#171a21,#2a475e);margin-bottom:15px;width:100%;">
+        🔐 Войти через Steam (OpenID)
+      </button>
+      
+      <div style="text-align:center;margin:10px 0;color:#c44582;font-weight:700;font-size:12px;">— ИЛИ —</div>
+      
       <input type="text" id="api-key-input" class="api-input" placeholder="Введите Steam Web API Key">
       <input type="text" id="steam-id-input" class="api-input" placeholder="Ваш Steam ID (64-bit)">
       <div class="btn-group">
