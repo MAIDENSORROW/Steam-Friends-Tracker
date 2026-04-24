@@ -157,6 +157,7 @@ body.theme-18plus ::-webkit-scrollbar-thumb{background:linear-gradient(135deg,rg
   </div>
   <div class="tabs">
     <button class="tab active" data-tab="friends">👥 Друзья</button>
+    <button class="tab" data-tab="favorites">⭐ Избранное</button>
     <button class="tab" data-tab="history">📜 История</button>
     <button class="tab" data-tab="stats">📊 Статистика</button>
   </div>
@@ -167,6 +168,14 @@ body.theme-18plus ::-webkit-scrollbar-thumb{background:linear-gradient(135deg,rg
       <button class="btn" id="export-btn">💾 Экспорт</button>
     </div>
     <div class="friends-list" id="friends-list"><div class="loading">Загрузка</div></div>
+  </div>
+  <div class="tab-content" id="tab-favorites">
+    <div class="search-box"><input type="text" id="favorites-search" placeholder="🔍 Поиск в избранном..."><span class="search-icon">🔍</span></div>
+    <div class="btn-group">
+      <button class="btn" id="add-favorites-btn">➕ Добавить текущих</button>
+      <button class="btn" id="clear-favorites-btn">✕ Очистить</button>
+    </div>
+    <div class="friends-list" id="favorites-list"><div class="loading">Загрузка</div></div>
   </div>
   <div class="tab-content" id="tab-history">
     <div class="btn-group"><button class="btn" id="clear-history-btn">✕ Очистить</button></div>

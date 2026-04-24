@@ -1,4 +1,4 @@
-let currentFriends=[],searchQuery='',isTheme18Plus=false;
+let currentFriends=[],searchQuery='',favoritesQuery='',isTheme18Plus=false;
 
 function formatDate(ts){
   const d=new Date(ts),n=new Date();
@@ -20,9 +20,9 @@ function createFriendItem(f,type){
 
 function esc(t){if(!t)return'';const d=document.createElement('div');d.textContent=t;return d.innerHTML;}
 
-function filterFriends(friends){
-  if(!searchQuery)return friends;
-  const q=searchQuery.toLowerCase();
+function filterFriends(friends,query){
+  if(!query)return friends;
+  const q=query.toLowerCase();
   return friends.filter(f=>f.name.toLowerCase().includes(q)||f.id.includes(q));
 }
 
@@ -31,7 +31,7 @@ function renderFriends(){
   if(!c)return;
   chrome.storage.local.get(['lastFriendsList'],(res)=>{
     currentFriends=res.lastFriendsList||[];
-    const filtered=filterFriends(currentFriends);
+    const filtered=filterFriends(currentFriends,searchQuery);
     if(!filtered.length){
       c.innerHTML=`<div class="empty-state"><div class="empty-icon">📭</div><div class="empty-text">Друзей не найдено</div><div class="empty-hint">${searchQuery?'Попробуйте другой запрос':'Зайдите на страницу друзей в Steam~'}</div></div>`;
       return;
@@ -39,6 +39,35 @@ function renderFriends(){
     let h='';
     filtered.forEach((f,i)=>{h+=`<div class="friend-item" style="animation-delay:${i*0.05}s"><img class="friend-avatar" src="${f.avatar||'https://avatars.steamstatic.com/fef49e7fa7e1997310d705b2a6158ff8dc1cdfeb_full.jpg'}"><div class="friend-info"><a class="friend-name" href="${f.url||f.profileUrl}" target="_blank">${esc(f.name)}</a><div class="friend-steamid">${f.id}</div></div></div>`;});
     c.innerHTML=h;updateStats();
+  });
+}
+
+function renderFavorites(){
+  const c=document.getElementById('favorites-list');
+  if(!c)return;
+  chrome.storage.local.get(['favorites'],(res)=>{
+    const favorites=res.favorites||[];
+    const filtered=filterFriends(favorites,favoritesQuery);
+    if(!filtered.length){
+      c.innerHTML=`<div class="empty-state"><div class="empty-icon">⭐</div><div class="empty-text">Избранное пусто</div><div class="empty-hint">${favoritesQuery?'Попробуйте другой запрос':'Добавьте друзей из текущего списка~'}</div></div>`;
+      return;
+    }
+    let h='';
+    filtered.forEach((f,i)=>{h+=`<div class="friend-item" style="animation-delay:${i*0.05}s"><img class="friend-avatar" src="${f.avatar||'https://avatars.steamstatic.com/fef49e7fa7e1997310d705b2a6158ff8dc1cdfeb_full.jpg'}"><div class="friend-info"><a class="friend-name" href="${f.url||f.profileUrl}" target="_blank">${esc(f.name)}</a><div class="friend-steamid">${f.id}</div></div><button class="btn-remove-fav" data-id="${f.id}" style="background:rgba(245,101,101,0.2);border:1px solid rgba(245,101,101,0.3);color:#f56565;border-radius:8px;padding:4px 8px;cursor:pointer;font-size:10px;font-weight:700;">✕</button></div>`;});
+    c.innerHTML=h;
+    // Обработчики кнопок удаления
+    setTimeout(()=>{
+      document.querySelectorAll('.btn-remove-fav').forEach(btn=>{
+        btn.addEventListener('click',(e)=>{
+          e.stopPropagation();
+          const id=btn.dataset.id;
+          chrome.storage.local.get(['favorites'],(res)=>{
+            const favs=(res.favorites||[]).filter(f=>f.id!==id);
+            chrome.storage.local.set({favorites:favs},()=>renderFavorites());
+          });
+        });
+      });
+    },100);
   });
 }
 
@@ -92,6 +121,7 @@ function initTabs(){
       document.querySelectorAll('.tab-content').forEach(c=>c.classList.remove('active'));
       tab.classList.add('active');document.getElementById(`tab-${id}`).classList.add('active');
       if(id==='friends')renderFriends();
+      if(id==='favorites')renderFavorites();
       if(id==='history')renderHistory();
       if(id==='stats')updateStats();
     });
@@ -102,6 +132,11 @@ function initSearch(){
   const input=document.getElementById('search-input');
   if(!input)return;
   input.addEventListener('input',(e)=>{searchQuery=e.target.value;renderFriends();});
+  
+  const favInput=document.getElementById('favorites-search');
+  if(favInput){
+    favInput.addEventListener('input',(e)=>{favoritesQuery=e.target.value;renderFavorites();});
+  }
 }
 
 document.addEventListener('DOMContentLoaded',()=>{
@@ -120,10 +155,31 @@ document.addEventListener('DOMContentLoaded',()=>{
       notify(`Экспортировано ${f.length} друзей!`);
     });
   });
+  // Кнопка добавления в избранное
+  document.getElementById('add-favorites-btn').addEventListener('click',()=>{
+    chrome.storage.local.get(['lastFriendsList','favorites'],(res)=>{
+      const current=res.lastFriendsList||[];
+      const existing=res.favorites||[];
+      const existingIds=new Set(existing.map(f=>f.id));
+      const toAdd=current.filter(f=>!existingIds.has(f.id));
+      if(toAdd.length===0){notify('Все друзья уже в избранном! ⭐');return;}
+      const updated=[...existing,...toAdd];
+      chrome.storage.local.set({favorites:updated},()=>{
+        renderFavorites();
+        notify(`Добавлено ${toAdd.length} друзей в избранное! ⭐`);
+      });
+    });
+  });
+  // Кнопка очистки избранного
+  document.getElementById('clear-favorites-btn').addEventListener('click',()=>{
+    if(confirm('Очистить избранное?\n\nНельзя отменить!')){
+      chrome.storage.local.set({favorites:[]},()=>{renderFavorites();notify('Избранное очищено! ✨');});
+    }
+  });
   document.getElementById('clear-history-btn').addEventListener('click',()=>{
     if(confirm('Очистить историю?\n\nНельзя отменить!')){chrome.storage.local.set({logs:[]},()=>{renderHistory();updateStats();notify('История очищена! ✨');});}
   });
-  chrome.runtime.onMessage.addListener((msg)=>{if(msg?.type==='UPDATE_AVAILABLE'){renderFriends();renderHistory();updateStats();}});
+  chrome.runtime.onMessage.addListener((msg)=>{if(msg?.type==='UPDATE_AVAILABLE'){renderFriends();renderFavorites();renderHistory();updateStats();}});
   setTimeout(updateStats,500);
 });
 function renderHistory(){
