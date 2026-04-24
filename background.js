@@ -1,7 +1,6 @@
-// 🔔 Background script с радио
+// 🔔 Background script
 let lastNotificationTime = 0;
 const COOLDOWN = 10000;
-let offscreenCreated = false;
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.type === 'SEND_NOTIFICATION') {
@@ -16,40 +15,8 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     return true;
   }
   
-  // 🎵 Управление радио через offscreen
-  if (message.type === 'PLAY_RADIO') {
-    ensureOffscreen().then(() => {
-      chrome.runtime.sendMessage({ type: 'PLAY', url: message.url }, sendResponse);
-    }).catch(err => {
-      console.error('Offscreen error:', err);
-      sendResponse({ success: false, error: err.message });
-    });
-    return true;
-  }
-  
-  if (message.type === 'PAUSE_RADIO') {
-    chrome.runtime.sendMessage({ type: 'PAUSE' }, sendResponse);
-    return true;
-  }
-  
-  if (message.type === 'STOP_RADIO') {
-    chrome.runtime.sendMessage({ type: 'STOP' }, sendResponse);
-    return true;
-  }
-  
   return true;
 });
-
-async function ensureOffscreen() {
-  if (offscreenCreated) return;
-  await chrome.offscreen.createDocument({
-    url: 'offscreen.html',
-    reasons: ['AUDIO_PLAYBACK'],
-    justification: 'Radio playback'
-  });
-  offscreenCreated = true;
-  console.log('[Background] Offscreen created');
-}
 
 function sendNotification(newFriends, removedFriends) {
   const added = newFriends?.length || 0;

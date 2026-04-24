@@ -69,22 +69,6 @@ body.theme-18plus .btn{background:linear-gradient(135deg,rgba(255,154,158,0.6),r
 body.theme-18plus .btn:hover{box-shadow:0 8px 25px rgba(255,154,158,0.5)}
 .btn:active{transform:translateY(-1px) scale(0.98)}
 
-/* Radio кнопки с анимацией */
-.radio-stations{display:flex;gap:8px;margin-bottom:15px;flex-wrap:wrap}
-.radio-station-btn{flex:1;min-width:100px;padding:12px;border:2px solid rgba(255,182,193,0.6);border-radius:12px;background:rgba(255,255,255,0.7);color:#c44582;font-weight:800;font-size:12px;cursor:pointer;transition:all 0.3s cubic-bezier(0.68,-0.55,0.265,1.55)}
-body.theme-18plus .radio-station-btn{background:rgba(0,0,0,0.3);color:#fff;border-color:rgba(255,255,255,0.2)}
-.radio-station-btn:hover{background:rgba(255,107,157,0.2);border-color:#ff6b9d;transform:translateY(-3px) scale(1.05);box-shadow:0 0 20px rgba(255,107,157,0.4)}
-body.theme-18plus .radio-station-btn:hover{background:rgba(255,255,255,0.1);border-color:rgba(255,255,255,0.4);box-shadow:0 0 20px rgba(255,255,255,0.3)}
-.radio-station-btn.active{background:linear-gradient(135deg,#ff6b9d 0%,#ff9a9e 100%);color:white;border-color:#ff6b9d;box-shadow:0 0 25px rgba(255,107,157,0.5);transform:translateY(-2px) scale(1.05)}
-body.theme-18plus .radio-station-btn.active{background:linear-gradient(135deg,rgba(255,154,158,0.6),rgba(255,236,210,0.6));border-color:rgba(255,255,255,0.5);box-shadow:0 0 25px rgba(255,154,158,0.5)}
-.radio-player{background:linear-gradient(135deg,#fff0f5 0%,#ffe4ec 100%);border-radius:20px;padding:18px;margin-bottom:15px;border:2px solid rgba(255,105,180,0.6);display:none;box-shadow:0 4px 20px rgba(255,105,180,0.2);animation:slideDown 0.4s cubic-bezier(0.68,-0.55,0.265,1.55)}
-body.theme-18plus .radio-player{background:rgba(0,0,0,0.3);border-color:rgba(255,255,255,0.1)}
-.radio-player.active{display:block}
-.radio-controls{display:flex;gap:8px}
-.radio-btn{flex:1;padding:12px;border:none;border-radius:12px;background:linear-gradient(135deg,#ff6b9d 0%,#ff9a9e 100%);color:white;font-weight:800;cursor:pointer;transition:all 0.3s cubic-bezier(0.68,-0.55,0.265,1.55);box-shadow:0 2px 10px rgba(255,107,157,0.3)}
-body.theme-18plus .radio-btn{background:linear-gradient(135deg,rgba(255,154,158,0.6),rgba(255,236,210,0.6));color:#fff;border:2px solid rgba(255,255,255,0.2)}
-.radio-btn:hover{transform:scale(1.08);box-shadow:0 4px 20px rgba(255,107,157,0.5)}
-
 /* Stats карточки с анимацией */
 .stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:15px}
 .stat-card{background:linear-gradient(135deg,#fff5f7 0%,#ffeef2 100%);border-radius:18px;padding:18px;text-align:center;border:2px solid rgba(255,182,193,0.6);transition:all 0.3s cubic-bezier(0.68,-0.55,0.265,1.55);box-shadow:0 2px 10px rgba(255,105,180,0.2);animation:slideUp 0.5s ease}
@@ -173,6 +157,7 @@ body.theme-18plus ::-webkit-scrollbar-thumb{background:linear-gradient(135deg,rg
   </div>
   <div class="tabs">
     <button class="tab active" data-tab="friends">👥 Друзья</button>
+    <button class="tab" data-tab="favorites">⭐ Избранное</button>
     <button class="tab" data-tab="history">📜 История</button>
     <button class="tab" data-tab="stats">📊 Статистика</button>
   </div>
@@ -182,21 +167,15 @@ body.theme-18plus ::-webkit-scrollbar-thumb{background:linear-gradient(135deg,rg
       <button class="btn" id="refresh-btn">⟳ Обновить</button>
       <button class="btn" id="export-btn">💾 Экспорт</button>
     </div>
-    <div class="radio-stations">
-      <button class="radio-station-btn" data-url="https://radiorecord.hostingradio.ru/dc96.aacp">🎵 Record</button>
-      <button class="radio-station-btn" data-url="http://vladfm.ru:8000/ara">🎵 VladFM</button>
-      <button class="radio-station-btn" data-url="http://176.118.220.124:8010/radio">🎵 ТКР ФМ</button>
-    </div>
-    <div class="radio-player" id="radio-player">
-      <div style="color:#c44582;margin-bottom:12px;font-weight:800" id="radio-name">📻 Радио</div>
-      <div style="color:#c44582;margin-bottom:15px;font-weight:700" id="radio-status">Нажми Play~</div>
-      <div class="radio-controls">
-        <button class="radio-btn" id="radio-play">▶</button>
-        <button class="radio-btn" id="radio-pause">⏸</button>
-        <button class="radio-btn" id="radio-stop">⏹</button>
-      </div>
-    </div>
     <div class="friends-list" id="friends-list"><div class="loading">Загрузка</div></div>
+  </div>
+  <div class="tab-content" id="tab-favorites">
+    <div class="search-box"><input type="text" id="favorites-search" placeholder="🔍 Поиск в избранном..."><span class="search-icon">🔍</span></div>
+    <div class="btn-group">
+      <button class="btn" id="add-favorites-btn">➕ Добавить текущих</button>
+      <button class="btn" id="clear-favorites-btn">✕ Очистить</button>
+    </div>
+    <div class="friends-list" id="favorites-list"><div class="loading">Загрузка</div></div>
   </div>
   <div class="tab-content" id="tab-history">
     <div class="btn-group"><button class="btn" id="clear-history-btn">✕ Очистить</button></div>
